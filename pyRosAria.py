@@ -1,5 +1,6 @@
 import rospy
 from geometry_msgs.msg import Twist
+import time
 
 def sendCmdVel(linear_velocity, angular_velocity):
     rospy.init_node('cmd_vel_publisher', anonymous=True)
@@ -23,6 +24,13 @@ if __name__ == '__main__':
         angular_velocity = 0  # radians per second
 
         # Call the send_cmd_vel function
+        sendCmdVel(linear_velocity, angular_velocity)
+
+        time.sleep(5)
+
+        linear_velocity = 0
+        angular_velocity = 0
+
         sendCmdVel(linear_velocity, angular_velocity)
 
     except rospy.ROSInterruptException:
