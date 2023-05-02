@@ -23,7 +23,7 @@ if __name__ == '__main__':
         angular_velocity = 0  # radians per second
 
         # Call the send_cmd_vel function
-        send_cmd_vel(linear_velocity, angular_velocity)
+        sendCmdVel(linear_velocity, angular_velocity)
 
     except rospy.ROSInterruptException:
         pass
