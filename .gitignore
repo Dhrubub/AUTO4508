@@ -59,3 +59,5 @@ CATKIN_IGNORE
 **./rosaria_client
 
 ./catkin_ws
+
+**vscode
