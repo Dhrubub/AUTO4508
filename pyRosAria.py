@@ -20,7 +20,7 @@ if __name__ == '__main__':
     try:
         # Set desired linear and angular velocities
         linear_velocity = 0.5  # meters per second
-        angular_velocity = 0.5  # radians per second
+        angular_velocity = 0  # radians per second
 
         # Call the send_cmd_vel function
         send_cmd_vel(linear_velocity, angular_velocity)
