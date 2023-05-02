@@ -21,13 +21,13 @@ def sendCmdVel(linear_velocity, angular_velocity):
 
 if __name__ == '__main__':
     rospy.init_node('cmd_vel_publisher', anonymous=False)
-    cmd_vel_pub = rospy.Publisher('/RosAria/cmd_vel', Twist, queue_size=10)
+    cmd_vel_pub = rospy.Publisher('/RosAria/cmd_vel', Twist, queue_size=1)
     
-    rate = rospy.Rate(2)
+    rate = rospy.Rate(1) # rate = 1/hz => 0.5 second delay
 
     limit = 0
 
-    while not rospy.is_shutdown() and limit < 10:
+    while not rospy.is_shutdown() and limit < 5:
         # Set desired linear and angular velocities
         linear_velocity = 0.5  # meters per second
         angular_velocity = 0  # radians per second
