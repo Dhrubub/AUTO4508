@@ -50,14 +50,5 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
-
-**./build
-**./devel
-**./src
-
-**./rosaria
-**./rosaria_client
-
-./catkin_ws
-
-**vscode
+**/.DS_STORE
+**/vscode
