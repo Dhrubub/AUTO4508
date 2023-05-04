@@ -20,6 +20,7 @@ rospy.logerr('hello')
 
 cmd_publisher = rospy.Publisher('/RosAria/cmd_vel', Twist, queue_size=1)
 
+pose = Twist()
 
 def manual_input(buttons, axes):
     l2 = buttons[L2] == 1
@@ -32,6 +33,7 @@ def manual_input(buttons, axes):
     left = axes[LEFT[0]] == LEFT[1]
 
     pose = Twist()
+
     
     speed = 1
     turbo = l2 and r2
@@ -41,9 +43,6 @@ def manual_input(buttons, axes):
     if (left): pose.angular.z = speed
     if (forward): pose.linear.x = speed
     if (reverse): pose.linear.x = -speed
-
-    cmd_publisher.publish(pose)
-
 
 
 
@@ -59,12 +58,21 @@ def joy_callback(data):
         manual_input(buttons, axes)
     else:
         rospy.loginfo("Automatic")
+        l2 = buttons[L2] == 1
+        r2 = buttons[R2] == 1
+        move = l2 and r2
+
+        if select or not move:
+            pose = Twist()
+            cmd_publisher.publish(pose)
 
 
 if __name__ == '__main__':
 
     rospy.Subscriber('/joy', Joy, joy_callback)
 
+    if is_manual:
+        cmd_publisher.publish(pose)
 
     rospy.spin()
 
