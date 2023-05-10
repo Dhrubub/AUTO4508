@@ -16,9 +16,6 @@ def sendCmdVel(linear_velocity, angular_velocity):
     rospy.loginfo("Published linear velocity: %s, angular velocity: %s", linear_velocity, angular_velocity)
     return cmd_vel_msg
 
-    
-
-
 if __name__ == '__main__':
     rospy.init_node('cmd_vel_publisher', anonymous=False)
     cmd_vel_pub = rospy.Publisher('/RosAria/cmd_vel', Twist, queue_size=1)
