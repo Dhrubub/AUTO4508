@@ -4,6 +4,8 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 
+rospy.init_node("auto_node")
+
 cmd_publisher = rospy.Publisher('/auto_cmd_vel', Twist, queue_size=1)
 
 def deadman_callback(data):
@@ -17,7 +19,6 @@ def deadman_callback(data):
         cmd_publisher.publish(pose)
 
 def boolean_subscriber():
-    rospy.init_node("auto_node")
 
     rospy.Subscriber('deadman_state', Bool, deadman_callback)
 
