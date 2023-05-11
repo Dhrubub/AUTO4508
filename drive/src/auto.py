@@ -9,7 +9,7 @@ cmd_publisher = rospy.Publisher('/auto_cmd_vel', Twist, queue_size=1)
 def deadman_callback(data):
     if data.data == True:
         pose = Twist()
-        pose.linear.x = 0.5
+        pose.linear.x = 0.25
         cmd_publisher.publish(pose)
 
     else:

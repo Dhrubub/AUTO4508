@@ -4,7 +4,7 @@ from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 
-SELECT = 8
+SELECT = 0
 R2 = 7
 L2 = 6
 
@@ -23,7 +23,6 @@ manual_toggle_publisher = rospy.Publisher('/manual_toggle', Bool, queue_size=1)
 deadman_publisher = rospy.Publisher('/deadman_state', Bool, queue_size=1)
 
 pose = Twist()
-pose = Twist()
 
 def manual_input(buttons, axes):
     global pose
@@ -39,9 +38,9 @@ def manual_input(buttons, axes):
     pose = Twist()
 
     
-    speed = 1
+    speed = 0.5
     turbo = l2 and r2
-    if (turbo): speed = 2
+    if (turbo): speed = 1
 
     if (right): pose.angular.z = -speed
     if (left): pose.angular.z = speed
@@ -53,7 +52,7 @@ def manual_input(buttons, axes):
 def joy_callback(data):
     buttons = data.buttons
     axes = data.axes
-    select = buttons[8]
+    select = buttons[SELECT]
 
     if (select):
         msg = Bool()

@@ -1,11 +1,13 @@
 <launch>
   <!-- Start roscore -->
-  <node name="roscore" pkg="ros" type="core" output="screen" />
+  <!-- <node name="roscore" pkg="ros" type="core" output="screen" /> -->
 
   <!-- Run RosAria -->
-  <node name="rosaria" pkg="rosaria" type="RosAria" output="screen">
-    <param name="_port" type="string" value="/dev/ttyS1" />
-  </node>
+  <!-- <node name="rosaria" pkg="rosaria" type="RosAria" output="screen">
+    <param name="_port" value="/dev/ttyS1" /> -->
+    <!-- <param name="baud" value = "115200" /> -->
+  <!-- </node> -->
+  <!-- <node pkg="rosaria" type="rosun" name="rosaria" output ="screen" args="rosaria RosAria _port:=/dev/ttyS1" /> -->
 
   <!-- Run joy_node -->
   <node name="joy_node" pkg="joy" type="joy_node" output="screen" />
