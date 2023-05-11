@@ -1,0 +1,21 @@
+<launch>
+  <!-- Start roscore -->
+  <node name="roscore" pkg="ros" type="core" output="screen" />
+
+  <!-- Run RosAria -->
+  <node name="rosaria" pkg="rosaria" type="RosAria" output="screen">
+    <param name="_port" type="string" value="/dev/ttyS1" />
+  </node>
+
+  <!-- Run joy_node -->
+  <node name="joy_node" pkg="joy" type="joy_node" output="screen" />
+
+  <!-- Run controller.py -->
+  <node name="controller" pkg="joystick" type="controller.py" output="screen" />
+
+  <!-- Run auto.py -->
+  <node name="auto" pkg="drive" type="auto.py" output="screen" />
+
+  <!-- Run drive.py -->
+  <node name="drive" pkg="master" type="drive.py" output="screen" />
+</launch>
