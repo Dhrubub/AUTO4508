@@ -32,8 +32,6 @@ def locate_cone(input_image):
     
     cv2.imshow("RGB image", RGB_image)
     
-    # cv2.imshow("eroded then dilated orange", eroded_then_dilated_orange)
-    
     totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(eroded_then_dilated_orange, 8, cv2.CV_32S)
     
     labels_of_interest = []
@@ -43,17 +41,11 @@ def locate_cone(input_image):
         if is_appropriate_size(area) == True:
             labels_of_interest.append(i)
         
-    #print(labels_of_interest)
-        
     output = np.zeros(eroded_then_dilated_orange.shape, dtype="uint8")
     
     for i in labels_of_interest:
         componentMask = (label_ids == i).astype("uint8") * 255
         output = cv2.bitwise_or(output, componentMask)
-          
-    # cv2.imshow("output", output)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
     
     return output, len(labels_of_interest)
 
