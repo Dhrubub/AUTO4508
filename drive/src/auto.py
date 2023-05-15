@@ -8,22 +8,29 @@ rospy.init_node("auto_node")
 
 cmd_publisher = rospy.Publisher('/auto_cmd_vel', Twist, queue_size=1)
 
-def deadman_callback(data):
-    if data.data == True:
-        pose = Twist()
-        pose.linear.x = 0.25
-        cmd_publisher.publish(pose)
+pose = Twist()
 
-    else:
-        pose = Twist()
-        cmd_publisher.publish(pose)
+pose.linear.x = 1
 
-def boolean_subscriber():
+def gps_callback(data):
+    global pose
+    rospy.logerr(data)
+    pose.angular.z = data.angular.z
 
-    rospy.Subscriber('deadman_state', Bool, deadman_callback)
 
-    rospy.spin()
 
 if __name__ == '__main__':
-    boolean_subscriber()
+    rate = rospy.Rate(50)
+
+    rospy.Subscriber('/gps_cmd_vel', Twist,  gps_callback)
+
+
+    while not rospy.is_shutdown():
+        cmd_publisher.publish(pose)
+
+        rate.sleep()
+
+
+
+
     
