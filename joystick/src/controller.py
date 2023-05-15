@@ -4,9 +4,13 @@ from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 
-SELECT = 0
-R2 = 7
-L2 = 6
+# XBOX:
+R2 = (5, -1)
+L2 = (2, -1)
+
+# PS
+# R2 = 7
+# L2 = 6
 
 LEFT = (3, 1)
 RIGHT = (3, -1)
@@ -15,6 +19,10 @@ FORWARD = (1, 1)
 REVERSE = (1, -1)
 
 is_manual = True
+
+
+MANUAL = 1
+AUTO = 0
 
 rospy.init_node('joy_controller')
 
@@ -26,8 +34,13 @@ pose = Twist()
 
 def manual_input(buttons, axes):
     global pose
-    l2 = buttons[L2] == 1
-    r2 = buttons[R2] == 1
+    # XBOX
+    l2 = axes[L2[0]] == L2[1]
+    r2 = axes[R2[0]] == R2[1]
+
+    # PS 
+    # l2 = buttons[L2] == 1
+    # r2 = buttons[R2] == 1
 
     forward = axes[FORWARD[0]] == FORWARD[1]
     reverse = axes[REVERSE[0]] == REVERSE[1]
@@ -52,17 +65,26 @@ def manual_input(buttons, axes):
 def joy_callback(data):
     buttons = data.buttons
     axes = data.axes
-    select = buttons[SELECT]
+    manual = buttons[MANUAL]
+    auto = buttons[AUTO]
 
-    if (select):
-        msg = Bool()
+    msg = Bool()
+    if (manual):
         msg.data = True
+        manual_toggle_publisher.publish(msg)
+    elif (auto):
+        msg.data = False
         manual_toggle_publisher.publish(msg)
     
     manual_input(buttons, axes)
 
-    l2 = buttons[L2] == 1
-    r2 = buttons[R2] == 1
+    # XBOX
+    l2 = axes[L2[0]] == L2[1]
+    r2 = axes[R2[0]] == R2[1]
+
+    # PS 
+    # l2 = buttons[L2] == 1
+    # r2 = buttons[R2] == 1
     move = l2 and r2
 
     msg = Bool()

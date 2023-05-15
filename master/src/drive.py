@@ -15,8 +15,8 @@ class State:
         # additional not used currently
         self.is_scanning = False
 
-    def manual_toggle(self):
-        self.is_manual = not self.is_manual
+    def set_manual(self, data):
+        self.is_manual = data
 
     def set_scan(self):
         self.pose = Twist()
@@ -43,9 +43,9 @@ def auto_cmd_vel(data):
             state.set_pose(Twist())
 
 def manual_toggle(data):
-    if data.data:
+    if not state.is_manual == data.data:
         state.set_pose(Twist())
-        state.manual_toggle()
+        state.set_manual(data.data)
 
 def deadman_callback(data):
     state.deadman = data.data

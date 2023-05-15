@@ -67,10 +67,10 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
 
 
 def gps_callback(data):
-    rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
+    # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
     # rospy.logerr(dir(data))
     rot = get_angle_to_target(data.latitude, data.longitude, target_lat, target_lon)
-    rospy.logerr(f"Target angle: {rot}\n")
+    # rospy.logerr(f"Target angle: {rot}\n")
     pose = Twist()
     # rot = 1
     if (rot > 0):
