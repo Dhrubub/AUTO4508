@@ -24,6 +24,9 @@
   <!-- Run gps.py -->
   <node name="gps" pkg="drive" type="gps.py" output="screen" />
 
+  <!-- Run cam.py -->
+  <node name="camera_node" pkg="camera" type="cam.py" output="screen"/>
+
   <!-- Run drive.py -->
   <node name="drive" pkg="master" type="drive.py" output="screen" />
 
