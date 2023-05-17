@@ -24,7 +24,6 @@ if __name__ == '__main__':
 
     rospy.Subscriber('/gps_cmd_vel', Twist,  gps_callback)
 
-
     while not rospy.is_shutdown():
         cmd_publisher.publish(pose)
 

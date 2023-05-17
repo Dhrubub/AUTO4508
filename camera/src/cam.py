@@ -90,22 +90,22 @@ def locate_cone(input_image):
         if (100 > centroid_x > 0):
             pose.angular.z = 0.3
             camera_publisher.publish(pose)
-            rospy.logerr("go left")
+            # rospy.logerr("go left")
             
         if (255 > centroid_x > 155):
             pose.angular.z = -0.3
             camera_publisher.publish(pose)
-            rospy.logerr("go right")
+            # rospy.logerr("go right")
             
         if (centroid_x > 100) and (centroid_x < 155):
             pose.angular.z = 0
             camera_publisher.publish(pose)
-            rospy.logerr("go straight")
+            # rospy.logerr("go straight")
             
         if (centroid_x == -1):
             pose.angular_z = 0
             camera_publisher.publish(pose)
-            rospy.logerr("No orange object detected")
+            # rospy.logerr("No orange object detected")
         
         
     output = np.zeros(eroded_then_dilated_orange.shape, dtype="uint8")
@@ -150,6 +150,7 @@ def find_cone():
         # Output queue will be used to get the rgb frames from the output defined above
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
 
+        rate = rospy.Rate(50)
         while True:
             inRgb = qRgb.get()  # blocking call, will wait until a new data has arrived
 
@@ -165,6 +166,8 @@ def find_cone():
             msg.data = num_orange > 0
             cone_publisher.publish(msg)
             
+            rate.sleep()
+
             # publish_message(orange_x)
 
             if cv2.waitKey(1) == ord('q'):

@@ -18,6 +18,7 @@ class State:
         self.deadman = False
         self.pose = Twist()
 
+        self.can_cone_follow = True
         self.current_state = CurrentState.MANUAL
 
 
@@ -68,7 +69,10 @@ def deadman_callback(data):
     state.deadman = data.data
 
 def cone_detected(data):
-    if not state.current_state == CurrentState.CONE_FOLLOW and not state.current_state == CurrentState.MANUAL:
+    if not state.current_state == CurrentState.CONE_FOLLOW and \
+        not state.current_state == CurrentState.MANUAL and \
+        state.can_cone_follow:
+
         if data.data == True:
         # rospy.logerr(data.data)
         
@@ -89,6 +93,17 @@ def camera_cmd_vel(data):
         state.set_pose(pose)
     # rospy.logerr(state.current_state)
 
+def can_cone_follow(data):
+    state.can_cone_follow = data.data
+
+def target_reached(data):
+    if data.data:
+        if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.CONE_FOLLOW:
+            state.set_state(CurrentState.SCAN)
+        
+def all_targets_reached(data):
+    if data.data:
+        rospy.logerr("Completed all targets!")
 
 if __name__ == "__main__":
     rate = rospy.Rate(50)
@@ -100,11 +115,16 @@ if __name__ == "__main__":
     rospy.Subscriber('/deadman_state', Bool, deadman_callback)
     rospy.Subscriber('/cone_detected', Bool, cone_detected)
     rospy.Subscriber('/camera_cmd_vel', Twist, camera_cmd_vel)
+    # rospy.Subscriber('/can_cone_follow', Twist, can_cone_follow)
+    # rospy.Subscriber('/target_reached', Twist, target_reached)
+    # rospy.Subscriber('/all_targets_reached', Twist, all_targets_reached)
+
+
 
 
     while not rospy.is_shutdown():
         if not state.current_state == CurrentState.MANUAL and state.deadman or state.current_state == CurrentState.MANUAL:
             rosaria_cmd_vel_publisher.publish(state.pose)
-        rospy.logerr(state.current_state)
+        # rospy.logerr(state.current_state)
 
         rate.sleep()
