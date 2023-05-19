@@ -13,6 +13,8 @@ import numpy as np
 import depthai as dai
 import numpy as np
 
+prevCount = 0
+
 rospy.init_node('camera_steer')
 
 camera_publisher = rospy.Publisher('/camera_cmd_vel', Twist, queue_size=1)
@@ -28,10 +30,7 @@ def publish_message(x):
     # cam_publisher.publish(message)  # Publish the message to the topic
 
 def is_appropriate_size(area):
-    if (1000 < area < 50000):
-        return True
-    else:
-        return False
+    return (100 < area < 50000)
     
 def locate_cone(input_image):
     BGR_image = input_image
@@ -39,9 +38,9 @@ def locate_cone(input_image):
     HSV_image = cv2.cvtColor(BGR_image, cv2.COLOR_BGR2HSV)
     
     lower_threshold_orange = np.array([0, 50, 0])
-    upper_threshold_orange = np.array([1, 240, 255])
+    upper_threshold_orange = np.array([5, 240, 255])
 
-    lower_threshold_orange2 = np.array([179, 50, 0])
+    lower_threshold_orange2 = np.array([175, 50, 0])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
@@ -53,7 +52,9 @@ def locate_cone(input_image):
     
     eroded_then_dilated_orange = cv2.dilate((eroded_orange), cv2.getStructuringElement(1, (11,11)))
     
-    # cv2.imshow("Colour", BGR_image)
+    cv2.imshow("Colour", BGR_image)
+    # rospy.logerr(f"height: {len(BGR_image)}")
+    # rospy.logerr(f"width: {len(BGR_image[0])}")
     # cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
     
     totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(eroded_then_dilated_orange, 8, cv2.CV_32S)
@@ -67,7 +68,7 @@ def locate_cone(input_image):
             
     centroid_x = -1
             
-    if len(labels_of_interest) > 1:
+    if len(labels_of_interest) > 0:
             
         area_array = np.zeros((1,len(labels_of_interest)))
         
@@ -86,27 +87,24 @@ def locate_cone(input_image):
         # rospy.logerr(cetroid_of_largest_orange)
         
         centroid_x = centroids[labels_of_interest[index_of_largest_cluster]][0]
+
+        rospy.logerr(f"centroid_x: {centroid_x}")
         
         if (100 > centroid_x > 0):
-            pose.angular.z = 0.3
+            pose.angular.z = 1
             camera_publisher.publish(pose)
-            # rospy.logerr("go left")
+            rospy.logerr("go left")
             
-        if (255 > centroid_x > 155):
-            pose.angular.z = -0.3
+        elif (300 > centroid_x > 200):
+            pose.angular.z = -1
             camera_publisher.publish(pose)
-            # rospy.logerr("go right")
+            rospy.logerr("go right")
             
-        if (centroid_x > 100) and (centroid_x < 155):
+        else:
             pose.angular.z = 0
             camera_publisher.publish(pose)
-            # rospy.logerr("go straight")
+            rospy.logerr("go straight")
             
-        if (centroid_x == -1):
-            pose.angular_z = 0
-            camera_publisher.publish(pose)
-            # rospy.logerr("No orange object detected")
-        
         
     output = np.zeros(eroded_then_dilated_orange.shape, dtype="uint8")
     
@@ -118,6 +116,7 @@ def locate_cone(input_image):
     return output, len(labels_of_interest), centroid_x
 
 def find_cone():
+    global prevCount
     # Create pipeline
     pipeline = dai.Pipeline()
 
@@ -159,14 +158,17 @@ def find_cone():
 
             output, num_orange, orange_x = locate_cone(inRgb.getCvFrame())
         
-            # cv2.imshow("output", output)
+            cv2.imshow("output", output)
             
             #rospy.logerr(num_orange)
             msg = Bool()
             msg.data = num_orange > 0
             cone_publisher.publish(msg)
+            if not num_orange == prevCount:
+                print(num_orange)
+                prevCount = num_orange
             
-            rate.sleep()
+            # rate.sleep()
 
             # publish_message(orange_x)
 

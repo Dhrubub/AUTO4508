@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import rospy
-from geometry_msgs.msg import Twist, QuaternionStamped
-from std_msgs.msg import Bool
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool, Int32
 
 import math
 
@@ -38,6 +38,8 @@ init_pos = False
 
 init_lat = None
 init_long = None
+
+heading_angle = None
 
 # target_lat = -31.980523
 # target_lon = 115.817174
@@ -113,6 +115,7 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
 
 def gps_callback(data):
     global init_pos
+    global heading_angle
     # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
 
     # if not init_pos:
@@ -123,27 +126,46 @@ def gps_callback(data):
 
 
     # rospy.logerr(dir(data))
-    target_lat = path[current_target]['lat']
-    target_long = path[current_target]['long']
-    rot = get_angle_to_target(data.latitude, data.longitude, target_lat, target_long)
+    # target_lat = path[current_target]['lat']
+    # target_long = path[current_target]['long']
+
+    target_lat = -31.9804611
+    target_long = 115.8172018
+
+    bearing = get_angle_to_target(data.latitude, data.longitude, target_lat, target_long)
+    
+
+    if heading_angle == None:
+        return
+
+    rot = (bearing - 90) - heading_angle
+    # rot = bearing - ((450 - heading_angle) % 360)
+
+    # rot = bearing * -1 - (heading_angle - 90)
+
+    
+    if rot > 180: rot -= 360
+    elif rot < -180: rot += 360
+
+    rospy.logerr(f"Angle: {bearing}, heading_angle: {heading_angle}, rot: {rot}")
     # rospy.logerr(f"Target angle: {rot}\n")
+    
     pose = Twist()
+
     if (rot > 0):
         pose.angular.z = 1
     elif (rot < 0):
         pose.angular.z = -1
 
-
-    
-
     cmd_publisher.publish(pose)
 
 
 def heading_callback(data):
-    rospy.logerr(data)
+    global heading_angle
+    heading_angle = data.data
 
 if __name__ == '__main__':
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
-    # rospy.Subscriber('/heading', QuaternionStamped, heading_callback)
+    rospy.Subscriber('/imu_heading', Int32, heading_callback)
 
     rospy.spin()    

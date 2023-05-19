@@ -10,7 +10,7 @@ cmd_publisher = rospy.Publisher('/auto_cmd_vel', Twist, queue_size=1)
 
 pose = Twist()
 
-pose.linear.x = 0.1
+pose.linear.x = 1
 
 def gps_callback(data):
     global pose

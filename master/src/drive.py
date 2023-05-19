@@ -69,27 +69,30 @@ def deadman_callback(data):
     state.deadman = data.data
 
 def cone_detected(data):
+    if not data.data and state.current_state == CurrentState.CONE_FOLLOW:
+        state.set_state(CurrentState.AUTO)
+    
     if not state.current_state == CurrentState.CONE_FOLLOW and \
         not state.current_state == CurrentState.MANUAL and \
         state.can_cone_follow:
 
-        if data.data == True:
+        if data.data:
         # rospy.logerr(data.data)
+
+            # rospy.logerr(f"you have seen a new cone!")
         
             state.set_state(CurrentState.CONE_FOLLOW)
-            pose = Twist()
-            pose.linear.x = 0.3
-            state.set_pose(pose)
+
         # rospy.logerr(state.current_state)
-        elif data.data == False:
-            state.set_state(CurrentState.AUTO)
+
             # rospy.logerr(state.current_state)
 
 def camera_cmd_vel(data):
     if state.current_state == CurrentState.CONE_FOLLOW:
         pose = Twist()
-        pose.angular.z = data.angular.z
-        pose.linear.x = 0.3
+        # rospy.logerr(f"camera updated steering")
+        pose.angular.z = data.angular.z * 0.2
+        pose.linear.x = 0.5
         state.set_pose(pose)
     # rospy.logerr(state.current_state)
 
@@ -120,11 +123,13 @@ if __name__ == "__main__":
     # rospy.Subscriber('/all_targets_reached', Twist, all_targets_reached)
 
 
-
+    prevState = CurrentState.MANUAL
 
     while not rospy.is_shutdown():
         if not state.current_state == CurrentState.MANUAL and state.deadman or state.current_state == CurrentState.MANUAL:
             rosaria_cmd_vel_publisher.publish(state.pose)
-        # rospy.logerr(state.current_state)
+        if not prevState == state.current_state:
+            rospy.logerr(state.current_state)
+            prevState = state.current_state
 
         rate.sleep()
