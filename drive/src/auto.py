@@ -20,7 +20,7 @@ def gps_callback(data):
 
 
 if __name__ == '__main__':
-    rate = rospy.Rate(50)
+    rate = rospy.Rate(500)
 
     rospy.Subscriber('/gps_cmd_vel', Twist,  gps_callback)
 

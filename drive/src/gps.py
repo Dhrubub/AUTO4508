@@ -20,7 +20,7 @@ targets = {
     "let_s_have_a_little_stroll": {'lat': 115.8174657, 'long': -31.98081842},
     "supporter_united": {'lat': 115.8175647, 'long': -31.98041252},
     "coffee_time": {'lat': 115.8197862, 'long': -31.98052211},
-    "drain": {'lat': 115.8171736, 'long': -31.98052283},
+    "drain": {'lat': 115.8172018, 'long': -31.9804611},
 }
 
 
@@ -87,24 +87,24 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     delta_lat = target_lat - current_lat
     delta_lon = target_lon - current_lon
 
-    # if is_distance_below_1m(current_lat, current_lon, target_lat, target_lon):
-        # return 0
+    if is_distance_below_1m(current_lat, current_lon, target_lat, target_lon):
+        return 0
 
-    # msg = Bool()
-    # msg.data = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
-    # can_cone_follow_publisher.publish(msg)
+    msg = Bool()
+    msg.data = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
+    can_cone_follow_publisher.publish(msg)
 
-    # msg = Bool()
-    # msg.data = False
+    msg = Bool()
+    msg.data = False
 
-    # if (is_distance_below_1m(current_lat, current_lon, target_lat, target_lon)):
-    #     msg.data = True
-    #     current_target += 1
-    #     if current_target >= len(path):
-    #         all_targets_reached_publisher.publish(msg)
+    if (is_distance_below_1m(current_lat, current_lon, target_lat, target_lon)):
+        msg.data = True
+        current_target += 1
+        if current_target >= len(path):
+            all_targets_reached_publisher.publish(msg)
 
 
-    # target_reached_publisher.publish(msg)
+    target_reached_publisher.publish(msg)
 
     # Calculate the angle to the target using atan2
     angle_rad = math.atan2(delta_lat, delta_lon)
@@ -118,19 +118,19 @@ def gps_callback(data):
     global heading_angle
     # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
 
-    # if not init_pos:
-    #     if (data.latitude and data.longitude):
-    #         pos = {"lat": data.latitude, "long": data.longitude}
-    #         path.append(pos)
-    #         init_pos = True
+    if not init_pos:
+        if (data.latitude and data.longitude):
+            pos = {"lat": data.latitude, "long": data.longitude}
+            path.append(pos)
+            init_pos = True
 
 
     # rospy.logerr(dir(data))
-    # target_lat = path[current_target]['lat']
-    # target_long = path[current_target]['long']
+    target_lat = path[current_target]['lat']
+    target_long = path[current_target]['long']
 
-    target_lat = -31.9804611
-    target_long = 115.8172018
+    # target_lat = -31.9804611
+    # target_long = 115.8172018
 
     bearing = get_angle_to_target(data.latitude, data.longitude, target_lat, target_long)
     
@@ -144,17 +144,17 @@ def gps_callback(data):
 
     # rot = bearing * -1 - (heading_angle - 90)
 
-    if (rot >= 180) rot -= 360
-    else if (rot < -180) rot += 360
+    if (rot >= 180): rot -= 360
+    elif (rot < -180): rot += 360
 
     rospy.logerr(f"Angle: {bearing}, heading_angle: {heading_angle}, rot: {rot}")
     # rospy.logerr(f"Target angle: {rot}\n")
     
     pose = Twist()
 
-    if (rot > 0):
+    if (rot >= 0):
         pose.angular.z = 1
-    elif (rot < 0):
+    elif (rot <= 0):
         pose.angular.z = -1
 
     cmd_publisher.publish(pose)

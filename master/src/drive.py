@@ -103,7 +103,10 @@ def target_reached(data):
     if data.data:
         if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.CONE_FOLLOW:
             state.set_state(CurrentState.SCAN)
-        
+            
+            # For Testing
+            state.set_state(CurrentState.AUTO)
+
 def all_targets_reached(data):
     if data.data:
         rospy.logerr("Completed all targets!")
@@ -118,9 +121,9 @@ if __name__ == "__main__":
     rospy.Subscriber('/deadman_state', Bool, deadman_callback)
     rospy.Subscriber('/cone_detected', Bool, cone_detected)
     rospy.Subscriber('/camera_cmd_vel', Twist, camera_cmd_vel)
-    # rospy.Subscriber('/can_cone_follow', Twist, can_cone_follow)
-    # rospy.Subscriber('/target_reached', Twist, target_reached)
-    # rospy.Subscriber('/all_targets_reached', Twist, all_targets_reached)
+    rospy.Subscriber('/can_cone_follow', Bool, can_cone_follow)
+    rospy.Subscriber('/target_reached', Bool, target_reached)
+    rospy.Subscriber('/all_targets_reached', Bool, all_targets_reached)
 
 
     prevState = CurrentState.MANUAL
