@@ -107,7 +107,7 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     # target_reached_publisher.publish(msg)
 
     # Calculate the angle to the target using atan2
-    angle_rad = math.atan2(delta_lon, delta_lat)
+    angle_rad = math.atan2(delta_lat, delta_lon)
     angle_deg = math.degrees(angle_rad)
 
     return angle_deg
@@ -138,14 +138,14 @@ def gps_callback(data):
     if heading_angle == None:
         return
 
-    rot = (bearing - 90) - heading_angle
+    # rot = (bearing - 90) - heading_angle
+    rot = bearing - heading_angle
     # rot = bearing - ((450 - heading_angle) % 360)
 
     # rot = bearing * -1 - (heading_angle - 90)
 
-    
-    if rot > 180: rot -= 360
-    elif rot < -180: rot += 360
+    if (rot >= 180) rot -= 360
+    else if (rot < -180) rot += 360
 
     rospy.logerr(f"Angle: {bearing}, heading_angle: {heading_angle}, rot: {rot}")
     # rospy.logerr(f"Target angle: {rot}\n")
