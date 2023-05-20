@@ -57,10 +57,10 @@ all_targets_reached_publisher = rospy.Publisher("/all_targets_reached", Bool, qu
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     # Convert latitude and longitude to radians
-    lat1_rad = math.radians(lat1)
-    lon1_rad = math.radians(lon1)
-    lat2_rad = math.radians(lat2)
-    lon2_rad = math.radians(lon2)
+    lat1_rad = lat1
+    lon1_rad = lon1
+    lat2_rad = lat2
+    lon2_rad = lon2
 
     # Calculate the differences in latitude and longitude
     delta_lat = lat2_rad - lat1_rad
@@ -79,20 +79,21 @@ def is_distance_below_3m(lat1, lon1, lat2, lon2):
 
 def is_distance_below_1m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
+    rospy.logerr(distance*100000)
     return distance < 0.00001  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 
 def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     # Calculate the differences in latitude and longitude
+    global current_target
+
     delta_lat = target_lat - current_lat
     delta_lon = target_lon - current_lon
 
-    if is_distance_below_1m(current_lat, current_lon, target_lat, target_lon):
-        return 0
 
-    msg = Bool()
-    msg.data = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
-    can_cone_follow_publisher.publish(msg)
+    # msg = Bool()
+    # msg.data = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
+    # can_cone_follow_publisher.publish(msg)
 
     msg = Bool()
     msg.data = False
@@ -102,6 +103,10 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
         current_target += 1
         if current_target >= len(path):
             all_targets_reached_publisher.publish(msg)
+        
+        rospy.logerr("REACHED!")
+
+        return 0
 
 
     target_reached_publisher.publish(msg)
@@ -115,19 +120,23 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
 
 def gps_callback(data):
     global init_pos
+    global path
     global heading_angle
+    global current_target
     # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
-
+    rospy.logerr(current_target)
     if not init_pos:
         if (data.latitude and data.longitude):
-            pos = {"lat": data.latitude, "long": data.longitude}
+            pos = {"lat": data.longitude, "long": data.latitude}
             path.append(pos)
             init_pos = True
+            # rospy.logerr(len(path))
 
-
+    if current_target >= len(path):
+        return
     # rospy.logerr(dir(data))
-    target_lat = path[current_target]['lat']
-    target_long = path[current_target]['long']
+    target_lat = path[current_target]['long']
+    target_long = path[current_target]['lat']
 
     # target_lat = -31.9804611
     # target_long = 115.8172018
