@@ -32,10 +32,15 @@
 
   <include file="/opt/ros/noetic/share/phidgets_spatial/launch/spatial.launch" />
 
+  <include file="/home/group1/Desktop/project/AUTO4508/catkin_ws/src/sick_scan_xd/launch/sick_tim_7xx.launch" />
+
   <!-- Launch imu_filter_madgwick -->
   <node name="imu_filter_madgwick" pkg="imu_filter_madgwick" type="imu_filter_node" output="screen" />
 
   <!-- Launch drive imu.py -->
   <node name="drive_imu" pkg="drive" type="imu.py" output="screen" />
+
+    <!-- Launch drive lidar.py -->
+  <node name="drive_lidar" pkg="drive" type="lidar.py" output="screen" />
 
 </launch>

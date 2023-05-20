@@ -87,7 +87,7 @@ def is_distance_below_5m(lat1, lon1, lat2, lon2):
 
 def is_distance_below_2m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
-    rospy.logerr(distance*100000)
+    # rospy.logerr(distance*100000)
     return distance < 0.000015  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 

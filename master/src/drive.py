@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from enum import Enum
 
 import time
@@ -21,6 +21,7 @@ class State:
         self.pose = Twist()
 
         self.can_cone_follow = False
+        self.collision_avoidance = False
         self.current_state = CurrentState.MANUAL
 
 
@@ -118,6 +119,9 @@ def all_targets_reached(data):
     if data.data:
         rospy.logerr("Completed all targets!")
 
+def collision_avoidance(data):
+    state.collision_avoidance = data.data
+
 if __name__ == "__main__":
     rate = rospy.Rate(50)
 
@@ -131,15 +135,30 @@ if __name__ == "__main__":
     rospy.Subscriber('/can_cone_follow', Bool, can_cone_follow)
     rospy.Subscriber('/target_reached', Bool, target_reached)
     rospy.Subscriber('/all_targets_reached', Bool, all_targets_reached)
+    rospy.Subscriber('/collision_avoidance', Bool, collision_avoidance)
+
+
+    # Publishers
+    gui_current_state_publisher = rospy.Publisher('/gui/current_state', String, queue_size=1)
 
 
     prevState = CurrentState.MANUAL
 
     while not rospy.is_shutdown():
         if not state.current_state == CurrentState.MANUAL and state.deadman or state.current_state == CurrentState.MANUAL:
-            rosaria_cmd_vel_publisher.publish(state.pose)
+            if state.collision_avoidance and not state.current_state == CurrentState.MANUAL:
+                pose = state.pose
+                pose.linear.x = 0
+                rosaria_cmd_vel_publisher.publish(pose)
+
+            else:
+                rosaria_cmd_vel_publisher.publish(state.pose)
+
         if not prevState == state.current_state:
             rospy.logerr(state.current_state)
+            msg = String()
+            msg.data = state.current_state.name
+            gui_current_state_publisher.publish(msg)
             prevState = state.current_state
 
         rate.sleep()

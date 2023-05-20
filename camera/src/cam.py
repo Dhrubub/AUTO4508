@@ -4,6 +4,8 @@ import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Int32
+from sensor_msgs.msg import Image
+
 
 from depthai_sdk import OakCamera
 
@@ -20,6 +22,8 @@ rospy.init_node('camera_steer')
 camera_publisher = rospy.Publisher('/camera_cmd_vel', Twist, queue_size=1)
 cone_publisher = rospy.Publisher('/cone_detected', Bool, queue_size=1)
 
+gui_colour_image_publisher = rospy.Publisher('/gui/colour_image', Image, queue_size=1)
+
 pose = Twist()
 
 def publish_message(x):
@@ -30,17 +34,38 @@ def publish_message(x):
     # cam_publisher.publish(message)  # Publish the message to the topic
 
 def is_appropriate_size(area):
-    return (100 < area < 50000)
+    return (100 < area < 10000)
     
 def locate_cone(input_image):
     BGR_image = input_image
 
+    # Assuming your cv2 frame is named 'frame'
+    ros_image = Image()
+    ros_image.header.stamp = rospy.Time.now()
+    ros_image.header.frame_id = 'your_frame_id'
+    ros_image.height = BGR_image.shape[0]
+    ros_image.width = BGR_image.shape[1]
+    ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+    ros_image.data = BGR_image.tostring()  # Convert the frame to a byte string
+    ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
+    
+    gui_colour_image_publisher.publish(ros_image)
+
+
+
+
     HSV_image = cv2.cvtColor(BGR_image, cv2.COLOR_BGR2HSV)
     
-    lower_threshold_orange = np.array([0, 50, 0])
-    upper_threshold_orange = np.array([15, 240, 255])
+    # lower_threshold_orange = np.array([0, 120, 120])
+    # upper_threshold_orange = np.array([60, 240, 240])
 
-    lower_threshold_orange2 = np.array([170, 50, 0])
+    # lower_threshold_orange2 = np.array([175, 120, 120])
+    # upper_threshold_orange2 = np.array([180, 240, 240])
+
+    lower_threshold_orange = np.array([0, 50, 50])
+    upper_threshold_orange = np.array([35, 240, 255])
+
+    lower_threshold_orange2 = np.array([175, 50, 50])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
@@ -56,7 +81,7 @@ def locate_cone(input_image):
     # rospy.logerr(f"height: {len(BGR_image)}")
     # rospy.logerr(f"width: {len(BGR_image[0])}")
     # cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
-    
+    eroded_then_dilated_orange = eroded_then_dilated_orange[125:225, :]
     totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(eroded_then_dilated_orange, 8, cv2.CV_32S)
     
     labels_of_interest = []
@@ -109,6 +134,7 @@ def locate_cone(input_image):
     output = np.zeros(eroded_then_dilated_orange.shape, dtype="uint8")
     
     for i in labels_of_interest:
+        i = labels_of_interest[index_of_largest_cluster]
         componentMask = (label_ids == i).astype("uint8") * 255
 
         output = cv2.bitwise_or(output, componentMask)
@@ -159,7 +185,7 @@ def find_cone():
 
             output, num_orange, orange_x, BGR_image = locate_cone(inRgb.getCvFrame())
 
-            if take_photo and num_orange:
+            if take_photo:
                 take_photo = False
                 # Get the current time
                 current_time = datetime.now()
