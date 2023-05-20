@@ -4,6 +4,8 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from enum import Enum
 
+import time
+
 
 rospy.init_node('master')
 
@@ -18,7 +20,7 @@ class State:
         self.deadman = False
         self.pose = Twist()
 
-        self.can_cone_follow = True
+        self.can_cone_follow = False
         self.current_state = CurrentState.MANUAL
 
 
@@ -69,6 +71,7 @@ def deadman_callback(data):
     state.deadman = data.data
 
 def cone_detected(data):
+    # rospy.logerr(data.data)
     if not data.data and state.current_state == CurrentState.CONE_FOLLOW:
         state.set_state(CurrentState.AUTO)
     
@@ -97,13 +100,17 @@ def camera_cmd_vel(data):
     # rospy.logerr(state.current_state)
 
 def can_cone_follow(data):
+    # rospy.logerr(data.data)
     state.can_cone_follow = data.data
 
 def target_reached(data):
     if data.data:
         if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.CONE_FOLLOW:
             state.set_state(CurrentState.SCAN)
-            
+            rospy.logerr("SCANNING")
+            state.set_pose(Twist())
+            time.sleep(5)
+            rospy.logerr("SCANNING COMPLETE")
             # For Testing
             state.set_state(CurrentState.AUTO)
 

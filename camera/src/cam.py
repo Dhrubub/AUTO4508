@@ -7,13 +7,13 @@ from std_msgs.msg import Bool, Int32
 
 from depthai_sdk import OakCamera
 
+from datetime import datetime
 import cv2
 import numpy as np
-
 import depthai as dai
-import numpy as np
 
 prevCount = 0
+take_photo = False
 
 rospy.init_node('camera_steer')
 
@@ -38,9 +38,9 @@ def locate_cone(input_image):
     HSV_image = cv2.cvtColor(BGR_image, cv2.COLOR_BGR2HSV)
     
     lower_threshold_orange = np.array([0, 50, 0])
-    upper_threshold_orange = np.array([5, 240, 255])
+    upper_threshold_orange = np.array([15, 240, 255])
 
-    lower_threshold_orange2 = np.array([175, 50, 0])
+    lower_threshold_orange2 = np.array([170, 50, 0])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
@@ -88,22 +88,22 @@ def locate_cone(input_image):
         
         centroid_x = centroids[labels_of_interest[index_of_largest_cluster]][0]
 
-        rospy.logerr(f"centroid_x: {centroid_x}")
+        # rospy.logerr(f"centroid_x: {centroid_x}")
         
         if (100 > centroid_x > 0):
             pose.angular.z = 1
             camera_publisher.publish(pose)
-            rospy.logerr("go left")
+            # rospy.logerr("go left")
             
         elif (300 > centroid_x > 200):
             pose.angular.z = -1
             camera_publisher.publish(pose)
-            rospy.logerr("go right")
+            # rospy.logerr("go right")
             
         else:
             pose.angular.z = 0
             camera_publisher.publish(pose)
-            rospy.logerr("go straight")
+            # rospy.logerr("go straight")
             
         
     output = np.zeros(eroded_then_dilated_orange.shape, dtype="uint8")
@@ -113,10 +113,11 @@ def locate_cone(input_image):
 
         output = cv2.bitwise_or(output, componentMask)
     
-    return output, len(labels_of_interest), centroid_x
+    return output, len(labels_of_interest), centroid_x, BGR_image
 
 def find_cone():
     global prevCount
+    global take_photo
     # Create pipeline
     pipeline = dai.Pipeline()
 
@@ -156,8 +157,19 @@ def find_cone():
             #Retrieve 'bgr' (opencv format) frame
             # cv2.imshow("rgb", inRgb.getCvFrame())
 
-            output, num_orange, orange_x = locate_cone(inRgb.getCvFrame())
-        
+            output, num_orange, orange_x, BGR_image = locate_cone(inRgb.getCvFrame())
+
+            if take_photo and num_orange:
+                take_photo = False
+                # Get the current time
+                current_time = datetime.now()
+
+                # Format the current time as a string
+                time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+                # Print the time string
+                cv2.imshow(time_string, BGR_image)
+
             cv2.imshow("output", output)
             
             #rospy.logerr(num_orange)
@@ -165,7 +177,7 @@ def find_cone():
             msg.data = num_orange > 0
             cone_publisher.publish(msg)
             if not num_orange == prevCount:
-                print(num_orange)
+                # print(num_orange)
                 prevCount = num_orange
             
             # rate.sleep()
@@ -174,8 +186,19 @@ def find_cone():
 
             if cv2.waitKey(1) == ord('q'):
                 break
+            elif cv2.waitKey(1) == ord('r'):
+                print("Taking photo")
+                take_photo = True
+
+def target_reached(data):
+    global take_photo
+    if data.data:
+        take_photo = True
+
 
 
 if __name__ == "__main__":
+    rospy.Subscriber('/target_reached', Bool, target_reached)
     find_cone()
+
     rospy.spin()

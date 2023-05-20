@@ -12,20 +12,28 @@ rospy.init_node("gps_node")
 
 cmd_publisher = rospy.Publisher('/gps_cmd_vel', Twist, queue_size=1)
 
+# targets = {
+#     "rallying_point": {'lon': 115.8171661, 'lat': -31.98057735},
+#     "somewhere_along_the_way": {'lon': 115.8171783, 'lat': -31.98038732},
+#     "maybe_a_scoreboard": {'lon': 115.8171703, 'lat': -31.98017884},
+#     "home_sweet_home" : {'lon': 115.8171315, 'lat': -31.98082892},
+#     "let_s_have_a_little_stroll": {'lon': 115.8174657, 'lat': -31.98081842},
+#     "supporter_united": {'lon': 115.8175647, 'lat': -31.98041252},
+#     "coffee_time": {'lon': 115.8197862, 'lat': -31.98052211},
+#     "drain": {'lon': 115.8172018, 'lat': -31.9804611},
+# }
+
 targets = {
-    "rallying_point": {'lat': 115.8171661, 'long': -31.98057735},
-    "somewhere_along_the_way": {'lat': 115.8171783, 'long': -31.98038732},
-    "maybe_a_scoreboard": {'lat': 115.8171703, 'long': -31.98017884},
-    "home_sweet_home" : {'lat': 115.8171315, 'long': -31.98082892},
-    "let_s_have_a_little_stroll": {'lat': 115.8174657, 'long': -31.98081842},
-    "supporter_united": {'lat': 115.8175647, 'long': -31.98041252},
-    "coffee_time": {'lat': 115.8197862, 'long': -31.98052211},
-    "drain": {'lat': 115.8172018, 'long': -31.9804611},
+    "one": {'lat': -31.980622, 'lon': 115.817494},
+    "two": {'lat': -31.98049, 'lon': 115.81756,},
+    "three": {'lat': -31.98055, 'lon': 115.81767},
+    "four" : {'lat': -31.98042, 'lon': 115.81779},
+    "drain": {'lat': -31.98051, 'lon': 115.81719},
 }
 
 
 # path_names = ["supporter_united", "maybe_a_scoreboard", "drain"]
-path_names = ["drain"]
+path_names = ["one", "two", "three", "four", "drain"]
 # pre_compute_headings = []
     
 
@@ -72,15 +80,15 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return distance
 
 
-def is_distance_below_3m(lat1, lon1, lat2, lon2):
+def is_distance_below_5m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
-    return distance < 0.00003  # 1 meter is approximately 0.00001 in latitude/longitude units
+    return distance < 0.00005  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 
-def is_distance_below_1m(lat1, lon1, lat2, lon2):
+def is_distance_below_2m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
     rospy.logerr(distance*100000)
-    return distance < 0.00001  # 1 meter is approximately 0.00001 in latitude/longitude units
+    return distance < 0.000015  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 
 def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
@@ -91,14 +99,14 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     delta_lon = target_lon - current_lon
 
 
-    # msg = Bool()
-    # msg.data = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
-    # can_cone_follow_publisher.publish(msg)
+    msg = Bool()
+    msg.data = is_distance_below_5m(current_lat, current_lon, target_lat, target_lon)
+    can_cone_follow_publisher.publish(msg)
 
     msg = Bool()
     msg.data = False
 
-    if (is_distance_below_1m(current_lat, current_lon, target_lat, target_lon)):
+    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)):
         msg.data = True
         current_target += 1
         if current_target >= len(path):
@@ -106,10 +114,8 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
         
         rospy.logerr("REACHED!")
 
-        return 0
-
-
     target_reached_publisher.publish(msg)
+
 
     # Calculate the angle to the target using atan2
     angle_rad = math.atan2(delta_lat, delta_lon)
@@ -124,10 +130,10 @@ def gps_callback(data):
     global heading_angle
     global current_target
     # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
-    rospy.logerr(current_target)
+    # rospy.logerr(current_target)
     if not init_pos:
         if (data.latitude and data.longitude):
-            pos = {"lat": data.longitude, "long": data.latitude}
+            pos = {"lon": data.longitude, "lat": data.latitude}
             path.append(pos)
             init_pos = True
             # rospy.logerr(len(path))
@@ -135,8 +141,8 @@ def gps_callback(data):
     if current_target >= len(path):
         return
     # rospy.logerr(dir(data))
-    target_lat = path[current_target]['long']
-    target_long = path[current_target]['lat']
+    target_lat = path[current_target]['lat']
+    target_long = path[current_target]['lon']
 
     # target_lat = -31.9804611
     # target_long = 115.8172018
@@ -156,15 +162,28 @@ def gps_callback(data):
     if (rot >= 180): rot -= 360
     elif (rot < -180): rot += 360
 
-    rospy.logerr(f"Angle: {bearing}, heading_angle: {heading_angle}, rot: {rot}")
+    # rospy.logerr(f"Angle: {bearing}, heading_angle: {heading_angle}, rot: {rot}")
     # rospy.logerr(f"Target angle: {rot}\n")
     
     pose = Twist()
+    pose.linear.x = 1
 
-    if (rot >= 0):
-        pose.angular.z = 1
-    elif (rot <= 0):
+    if (rot >= 5):
+        pose.angular.z = 0.5
+
+        if rot < 20:
+            pose.angular.z = 0.5
+        elif rot > 90:
+            pose.linear.x = 0.5
+
+
+    elif (rot <= -5):
         pose.angular.z = -1
+
+        if rot > -20:
+            pose.angular.z = -0.5
+        elif rot < -90:
+            pose.linear.x = 0.5
 
     cmd_publisher.publish(pose)
 

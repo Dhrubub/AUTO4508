@@ -53,7 +53,7 @@ def manual_input(buttons, axes):
     
     speed = 0.5
     turbo = l2 and r2
-    if (turbo): speed = 1
+    if (turbo): speed = 3
 
     if (right): pose.angular.z = -speed
     if (left): pose.angular.z = speed
