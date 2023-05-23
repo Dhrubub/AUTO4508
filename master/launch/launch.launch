@@ -24,9 +24,6 @@
   <!-- Run gps.py -->
   <node name="gps" pkg="drive" type="gps.py" output="screen" />
 
-  <!-- Run cam.py -->
-  <!-- <node name="camera_node" pkg="camera" type="cam.py" output="screen"/> -->
-
   <!-- Run drive.py -->
   <node name="drive" pkg="master" type="drive.py" output="screen" />
 
@@ -44,5 +41,12 @@
   <node name="drive_lidar" pkg="drive" type="lidar.py" output="screen" />
 
   <node pkg="drive" type="collision_avoidance.py" name="collision_avoidance_node" output="screen"/>
+
+
+    <!-- Run cam.py -->
+  <!-- <node name="camera_node" pkg="camera" type="cam.py" output="screen"/> -->
+  
+  <!-- Run gui.py -->
+  <!-- <node name="gui_node" pkg="master" type="gui.py" output="screen"/> -->
 
 </launch>

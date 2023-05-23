@@ -23,6 +23,7 @@ camera_publisher = rospy.Publisher('/camera_cmd_vel', Twist, queue_size=1)
 cone_publisher = rospy.Publisher('/cone_detected', Bool, queue_size=1)
 
 gui_colour_image_publisher = rospy.Publisher('/gui/colour_image', Image, queue_size=1)
+gui_output_image_publisher = rospy.Publisher('/gui/output_image', Image, queue_size=1)
 gui_capture_publisher = rospy.Publisher('/gui/capture', Image, queue_size=1)
 
 pose = Twist()
@@ -54,8 +55,11 @@ def locate_cone(input_image):
     
     gui_colour_image_publisher.publish(ros_image)
 
+    full_image = BGR_image
 
+    BGR_image = BGR_image[125:225, :]
 
+    # Keep orange
 
     HSV_image = cv2.cvtColor(BGR_image, cv2.COLOR_BGR2HSV)
     
@@ -65,10 +69,10 @@ def locate_cone(input_image):
     # lower_threshold_orange2 = np.array([175, 120, 120])
     # upper_threshold_orange2 = np.array([180, 240, 240])
 
-    lower_threshold_orange = np.array([0, 20, 20])
+    lower_threshold_orange = np.array([0, 50, 50])
     upper_threshold_orange = np.array([10, 240, 255])
 
-    lower_threshold_orange2 = np.array([175, 20, 20])
+    lower_threshold_orange2 = np.array([170, 50, 50])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
@@ -83,8 +87,11 @@ def locate_cone(input_image):
     # cv2.imshow("Colour", BGR_image)
     # rospy.logerr(f"height: {len(BGR_image)}")
     # rospy.logerr(f"width: {len(BGR_image[0])}")
-    eroded_then_dilated_orange = eroded_then_dilated_orange[125:225, :]
-    cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
+    # eroded_then_dilated_orange = eroded_then_dilated_orange[125:225, :]
+
+
+
+    # cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
     totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(eroded_then_dilated_orange, 8, cv2.CV_32S)
     
     labels_of_interest = []
@@ -142,7 +149,7 @@ def locate_cone(input_image):
 
         output = cv2.bitwise_or(output, componentMask)
     
-    return output, len(labels_of_interest), centroid_x, BGR_image
+    return output, len(labels_of_interest), centroid_x, full_image
 
 def find_cone():
     global prevCount
@@ -211,7 +218,22 @@ def find_cone():
                 gui_capture_publisher.publish(ros_image)
 
 
-            # cv2.imshow("output", output)
+            # cv2.imshow("Output", output)
+            # print(output.shape)
+            # Assuming your cv2 frame is named 'frame'
+            # padded_output = np.pad(output, ((0, 200), (0, 0)), mode="constant", constant_values=0)
+            padded_output = cv2.cvtColor(output, cv2.COLOR_GRAY2BGR)
+            # print(padded_output.shape)
+            ros_image = Image()
+            ros_image.header.stamp = rospy.Time.now()
+            ros_image.header.frame_id = 'your_frame_id'
+            ros_image.height = padded_output.shape[0]
+            ros_image.width = padded_output.shape[1]
+            ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+            ros_image.data = padded_output.tobytes()  # Convert the frame to a byte string
+            ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
+
+            gui_output_image_publisher.publish(ros_image)
             
             #rospy.logerr(num_orange)
             msg = Bool()
@@ -231,15 +253,15 @@ def find_cone():
                 print("Taking photo")
                 take_photo = True
 
-def target_reached(data):
+def take_photo_callback(data):
     global take_photo
     if data.data:
         take_photo = True
 
-
-
 if __name__ == "__main__":
-    rospy.Subscriber('/target_reached', Bool, target_reached)
+    rospy.Subscriber('/target_reached', Bool, take_photo_callback)
+    rospy.Subscriber('/take_bucket_photo', Bool, take_photo_callback)
+
     find_cone()
 
     rospy.spin()

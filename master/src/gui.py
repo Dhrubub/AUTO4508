@@ -96,6 +96,23 @@ class State():
         ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
     
         self.colour_image = ros_image
+
+        empty_image = np.zeros((100, 300, 3), dtype=np.uint8)
+        # Assuming your cv2 frame is named 'frame'
+        ros_image = SensorImage()
+        ros_image.header.stamp = rospy.Time.now()
+        ros_image.header.frame_id = 'your_frame_id'
+        ros_image.height = empty_image.shape[0]
+        ros_image.width = empty_image.shape[1]
+        ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+        ros_image.data = empty_image.tobytes()  # Convert the frame to a byte string
+        ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
+    
+        self.colour_image = ros_image
+
+
+
+        self.output_image = ros_image
         self.distance = None
 
         self.captures = []
@@ -140,8 +157,8 @@ class State():
                 if x-1 > 0: self.grid[y][x-1] = colour.value
                 if x+1 < 200: self.grid[y][x+1] = colour.value
 
-
-            self.grid[y][x] = colour.value
+            if 0 <= y < 200 and 0 <= x < 200:
+                self.grid[y][x] = colour.value
 
 
 state = State()
@@ -155,7 +172,7 @@ root.protocol("WM_DELETE_WINDOW", on_closing)
 
 
 root.title("Robot State Dashboard")
-root.geometry("610x700")
+root.geometry("900x700")
 
 # First Third - Robot Image
 first_third = tk.Frame(root, width=600, height=300)
@@ -167,15 +184,16 @@ robot_image_frame.pack(side=tk.LEFT, padx=10)
 
 # Create the first robot image label on the left
 robot_image_label1 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
-robot_image_label1.grid(row=0, column=0, padx=45)
+robot_image_label1.grid(row=0, column=0, padx=25)
+
+# Create the third robot image label in the middle
+robot_image_label3 = tk.Label(robot_image_frame, width=300, height=100, bg="black")
+robot_image_label3.grid(row=0, column=1, padx=25)
 
 # Create the second robot image label on the right
 robot_image_label2 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
-robot_image_label2.grid(row=0, column=1, padx=45)
+robot_image_label2.grid(row=0, column=2, padx=25)
 
-# # Create the second robot image label on the right
-# robot_image_label3 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
-# robot_image_label3.grid(row=0, column=2, padx=20)
 
 
 # Generate a black RGB numpy array for robot images
@@ -185,15 +203,16 @@ robot_image_tk1 = ImageTk.PhotoImage(image=robot_image1)
 robot_image_label1.config(image=robot_image_tk1)
 robot_image_label1.image = robot_image_tk1
 
+robot_image3 = Image.fromarray(robot_image_array)
+robot_image_tk3 = ImageTk.PhotoImage(image=robot_image3)
+robot_image_label3.config(image=robot_image_tk3)
+robot_image_label3.image = robot_image_tk3
+
 robot_image2 = Image.fromarray(robot_image_array)
 robot_image_tk2 = ImageTk.PhotoImage(image=robot_image2)
 robot_image_label2.config(image=robot_image_tk2)
 robot_image_label2.image = robot_image_tk2
 
-# robot_image3 = Image.fromarray(robot_image_array)
-# robot_image_t3 = ImageTk.PhotoImage(image=robot_image3)
-# robot_image_label3.config(image=robot_image_tk3)
-# robot_image_label3.image = robot_image_tk3
 
 # Second Third - Robot State Information
 second_third = tk.Frame(root, width=600, height=300)
@@ -217,11 +236,11 @@ for i in range(len(labels)):
     frame.pack(side=tk.TOP, pady=5)
     label_value_frames.append(frame)
 
-    label = tk.Label(frame, text=labels[i], font=("Arial", 7), width=18, anchor="w")
+    label = tk.Label(frame, text=labels[i], font=("Arial", 9), width=24, anchor="w")
     label.pack(side=tk.LEFT)
     label_labels.append(label)
 
-    value_label = tk.Label(frame, text=values[i], font=("Arial", 7), width=18, anchor="e")
+    value_label = tk.Label(frame, text=values[i], font=("Arial", 9), width=24, anchor="e")
     value_label.pack(side=tk.RIGHT)
     value_labels.append(value_label)
 
@@ -275,13 +294,15 @@ def update_state():
     robot_image_label1.image = robot_image_tk1
 
 
-    # # Convert the sensor image to a cv2 frame
-    # cv_image = bridge.imgmsg_to_cv2(state.grid, desired_encoding='bgr8')
-    # resized_image = cv2.resize(cv_image, (200, 200))
-    # # Convert the cv2 frame to PIL Image
-    # robot_image2 = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+   # Convert the sensor image to a cv2 frame
+    cv_image = bridge.imgmsg_to_cv2(state.output_image, desired_encoding='bgr8')
+    resized_image = cv2.resize(cv_image, (300, 100))
+    # Convert the cv2 frame to PIL Image
+    robot_image3 = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
 
-
+    robot_image_tk3 = ImageTk.PhotoImage(image=robot_image3)
+    robot_image_label3.config(image=robot_image_tk3)
+    robot_image_label3.image = robot_image_tk3
 
     map_grid = state.grid.astype(np.uint8)
     robot_image2 = Image.fromarray(map_grid)
@@ -296,7 +317,7 @@ def update_state():
     # Create the labels for small images
     for i in range(len(state.captures)):
         label_frame = tk.Frame(bottom_frame, width=100, height=100, bg="white")
-        label_frame.grid(row=int(i/5), column=i%5, padx=10, pady=5)
+        label_frame.grid(row=int(i/6), column=i%6, padx=10, pady=5)
 
         label = tk.Label(label_frame, width=100, height=100, bg="black")
         label.pack()
@@ -352,6 +373,7 @@ def current_state(data):
 if __name__ == "__main__":
     rospy.Subscriber('/imu_heading', Int32, lambda data: setattr(state, 'heading', data.data))
     rospy.Subscriber('/gui/colour_image', SensorImage, lambda data: setattr(state, 'colour_image', data))
+    rospy.Subscriber('/gui/output_image', SensorImage, lambda data: setattr(state, 'output_image', data))
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
     rospy.Subscriber('/gui/current_state', String, current_state)
     rospy.Subscriber('/gui/capture', SensorImage, update_captures)

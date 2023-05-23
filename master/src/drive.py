@@ -66,6 +66,7 @@ def manual_toggle(data):
     elif not data.data and state.current_state == CurrentState.MANUAL:
         state.set_pose(Twist())
         state.set_state(CurrentState.AUTO)
+        # state.set_state(CurrentState.SCAN)
 
 def deadman_callback(data):
     state.deadman = data.data
@@ -75,10 +76,12 @@ def cone_detected(data):
     if not data.data and state.current_state == CurrentState.CONE_FOLLOW:
         state.set_state(CurrentState.AUTO)
     
-    if not state.current_state == CurrentState.CONE_FOLLOW and \
-        not state.current_state == CurrentState.MANUAL and \
-        not state.current_state == CurrentState.OBSTACLE_AVOIDING and \
-        state.can_cone_follow:
+    # if not state.current_state == CurrentState.CONE_FOLLOW and \
+    #     not state.current_state == CurrentState.MANUAL and \
+    #     not state.current_state == CurrentState.OBSTACLE_AVOIDING and \
+    #     state.can_cone_follow:
+
+    if state.current_state == CurrentState.AUTO and state.can_cone_follow:
 
         if data.data:
         # rospy.logerr(data.data)
@@ -110,10 +113,16 @@ def target_reached(data):
             state.set_state(CurrentState.SCAN)
             rospy.logerr("SCANNING")
             state.set_pose(Twist())
-            time.sleep(5)
-            rospy.logerr("SCANNING COMPLETE")
-            # For Testing
-            state.set_state(CurrentState.AUTO)
+            # time.sleep(5)
+            # rospy.logerr("SCANNING COMPLETE")
+            # # For Testing
+            # state.set_state(CurrentState.AUTO)
+
+
+def scan_cmd_vel(data):
+    if state.current_state == CurrentState.SCAN:
+        state.set_pose(data)
+
 
 def all_targets_reached(data):
     if data.data:
@@ -131,9 +140,15 @@ def lidar_directions_open(data):
     elif right and state.current_state == CurrentState.OBSTACLE_AVOIDING:
         state.set_state(CurrentState.AUTO)
 
-def avoid_obstacle (data):
+def avoid_obstacle(data):
     if state.current_state == CurrentState.OBSTACLE_AVOIDING:
         state.set_pose(data)
+
+
+def scan_complete(data):
+    if data.data and state.current_state == CurrentState.SCAN:
+        state.set_state(CurrentState.AUTO)
+
 
 if __name__ == "__main__":
     rate = rospy.Rate(50)
@@ -150,6 +165,8 @@ if __name__ == "__main__":
     rospy.Subscriber('/all_targets_reached', Bool, all_targets_reached)
     rospy.Subscriber('/lidar_directions_open', Int32MultiArray, lidar_directions_open)
     rospy.Subscriber('/collision_cmd_vel', Twist, avoid_obstacle)
+    rospy.Subscriber('/scan_cmd_vel', Twist, scan_cmd_vel)
+    rospy.Subscriber('/scan_complete', Bool, scan_complete)
 
     # Publishers
     gui_current_state_publisher = rospy.Publisher('/gui/current_state', String, queue_size=1)

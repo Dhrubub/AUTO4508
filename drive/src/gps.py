@@ -2,9 +2,10 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool, Int32, Float32
+from std_msgs.msg import Bool, Int32, Float32, Int32MultiArray
 
 import math
+import pandas as pd
 
 from sensor_msgs.msg import NavSatFix
 
@@ -46,7 +47,25 @@ path_names = ["three", "five"]
     
 
 
-path = [targets[p] for p in path_names]
+# path = [targets[p] for p in path_names]
+
+path = []
+# df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/coordinate.csv', header=None)
+
+# Teest
+df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
+
+for index, row in df.iterrows():
+    print(row)
+    lat = float(row[0])
+    lon = float(row[1])
+    coordinates = {'lat': lat, 'lon': lon}
+    path.append(coordinates)
+
+
+print(path)
+
+
 
 current_target = 0
 
@@ -56,6 +75,9 @@ init_lat = None
 init_long = None
 
 heading_angle = None
+
+lidar_open = Int32MultiArray()
+lidar_open.data = [True, True]
 
 # target_lat = -31.980523
 # target_lon = 115.817174
@@ -94,10 +116,13 @@ def is_distance_below_5m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
     return distance < 0.00005  # 1 meter is approximately 0.00001 in latitude/longitude units
 
+def is_distance_below_3m(lat1, lon1, lat2, lon2):
+    distance = calculate_distance(lat1, lon1, lat2, lon2)
+    return distance < 0.00003  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 def is_distance_below_2m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
-    rospy.logerr(distance*100000)
+    # rospy.logerr(distance*100000)
 
     msg = Float32()
     msg.data = distance*100000
@@ -117,10 +142,12 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     msg.data = is_distance_below_5m(current_lat, current_lon, target_lat, target_lon)
     can_cone_follow_publisher.publish(msg)
 
+    reachable_threshold = is_distance_below_3m(current_lat, current_lon, target_lat, target_lon)
+
     msg = Bool()
     msg.data = False
 
-    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)):
+    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)) or reachable_threshold and not lidar_open[0]:
         msg.data = True
         current_target += 1
         if current_target >= len(path):
@@ -206,8 +233,16 @@ def heading_callback(data):
     global heading_angle
     heading_angle = data.data
 
+def open_cb(data):
+    # front left right
+    global lidar_open
+    lidar_open = data.data
+
+    
+
 if __name__ == '__main__':
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
     rospy.Subscriber('/imu_heading', Int32, heading_callback)
+    rospy.Subscriber('/lidar_directions_open', Int32MultiArray, open_cb)
 
     rospy.spin()    

@@ -18,7 +18,7 @@ def open_cb(data):
 
     pose = Twist()
     if not front:
-        pose.angular.z = 0.5
+        pose.angular.z = 1
     
     elif not right:
         pose.linear.x = 0.5

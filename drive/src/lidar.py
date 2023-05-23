@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import rospy
-from std_msgs.msg import Bool, Int32, Int32MultiArray
+from std_msgs.msg import Bool, Int32, Int32MultiArray, Float32MultiArray
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
 import numpy as np
@@ -10,6 +10,8 @@ import math
 rospy.init_node("lidar_directions_open")
 
 lidar_publisher = rospy.Publisher("/lidar_directions_open", Int32MultiArray, queue_size = 1)
+lidar_front_publisher = rospy.Publisher("/lidar_front", Float32MultiArray, queue_size = 1)
+lidar_right_publisher = rospy.Publisher("/lidar_right", Int32MultiArray, queue_size = 1)
 
 def lidar_cb(data):
     
@@ -27,10 +29,9 @@ def lidar_cb(data):
         
         distance_array.append(distance)
         
-    detection_width = 300
+    front_check = [i for i in range(250, 550, 10)]
+    right_check = [i for i in range(50, 250, 10)]
 
-    front_check = [275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525]
-    right_check = [75, 100, 125, 150, 175, 200, 225]
     front_dist = [distance_array[x] for x in front_check]
     right_dist = [distance_array[x] for x in right_check]
 
@@ -51,19 +52,17 @@ def lidar_cb(data):
     # non_zero_right_distances = [num for num in right_distances if num > 0.4]
     
     array_msg = Int32MultiArray()
+    array_front_msg = Float32MultiArray()
+    array_front_msg.data = front_dist
+
 
     # array_msg.layout.dim[0].label = "lidar_front_left_right"
     # array_msg.layout.dim[0].size = 3
     # array_msg.layout.dim[0].stride = 1
     
-    #np_distance_array = np.array(distance_array)
-    # nparr = [d for d in distance_array]
-    # if i in range(len(nparr)):
-    #     if nparr[i] < 0.4:
-    #         nparr[i] = 10000
 
-    # nparr = [distance if distance > 0.4 else 10000 for distance in distance_array]
-    # print(nparr.index(min(nparr)))
+    # nparr = [distance if distance > 0.2 else 10000 for distance in front_dist]
+    # print(front_check[nparr.index(min(nparr))])
     
     # rospy.logerr(np.where(np_distance_array == np_distance_array.min()))
 
@@ -83,12 +82,12 @@ def lidar_cb(data):
     #     right_avg = min(avg, right_avg)
 
     
-    array_msg.data[0] = not np.any([error_thresh < d < 1 for d in front_dist])
+    array_msg.data[0] = not np.any([error_thresh < d < 1.5 for d in front_dist])
 
-    array_msg.data[1] = not np.any([error_thresh < d < 1 for d in right_dist])
+    array_msg.data[1] = not np.any([error_thresh < d < 1.5 for d in right_dist])
     # array_msg.data[1] = not error_thresh < right_avg < 1
 
-
+    lidar_front_publisher.publish(array_front_msg)
     lidar_publisher.publish(array_msg)
 
 if __name__ == '__main__':
