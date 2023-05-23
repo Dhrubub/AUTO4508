@@ -15,8 +15,8 @@ pose.linear.x = 1
 def gps_callback(data):
     global pose
     # rospy.logerr(data)
-    pose.linear.x = data.linear.x * 1
-    # pose.angular.z = data.angular.z * 1
+    pose.linear.x = data.linear.x * 0.5
+    pose.angular.z = data.angular.z * 0.5
 
 
 

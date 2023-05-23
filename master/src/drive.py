@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, String, Int32MultiArray
 from enum import Enum
 
 import time
@@ -14,6 +14,7 @@ class CurrentState(Enum):
     AUTO = "AUTO"
     CONE_FOLLOW = "CONE_FOLLOW"
     SCAN = "SCAN"
+    OBSTACLE_AVOIDING = "OBSTACLE_AVOIDING"
 
 class State:
     def __init__(self):
@@ -21,9 +22,7 @@ class State:
         self.pose = Twist()
 
         self.can_cone_follow = False
-        self.collision_avoidance = False
         self.current_state = CurrentState.MANUAL
-
 
     def set_manual(self, data):
         if data:
@@ -78,6 +77,7 @@ def cone_detected(data):
     
     if not state.current_state == CurrentState.CONE_FOLLOW and \
         not state.current_state == CurrentState.MANUAL and \
+        not state.current_state == CurrentState.OBSTACLE_AVOIDING and \
         state.can_cone_follow:
 
         if data.data:
@@ -119,8 +119,21 @@ def all_targets_reached(data):
     if data.data:
         rospy.logerr("Completed all targets!")
 
-def collision_avoidance(data):
-    state.collision_avoidance = data.data
+def lidar_directions_open(data):
+    # front left right
+    front = data.data[0]
+    right = data.data[1]
+
+
+    if not (front or state.current_state == CurrentState.MANUAL or state.current_state == CurrentState.SCAN):
+        state.set_state(CurrentState.OBSTACLE_AVOIDING)
+    
+    elif right and state.current_state == CurrentState.OBSTACLE_AVOIDING:
+        state.set_state(CurrentState.AUTO)
+
+def avoid_obstacle (data):
+    if state.current_state == CurrentState.OBSTACLE_AVOIDING:
+        state.set_pose(data)
 
 if __name__ == "__main__":
     rate = rospy.Rate(50)
@@ -135,8 +148,8 @@ if __name__ == "__main__":
     rospy.Subscriber('/can_cone_follow', Bool, can_cone_follow)
     rospy.Subscriber('/target_reached', Bool, target_reached)
     rospy.Subscriber('/all_targets_reached', Bool, all_targets_reached)
-    rospy.Subscriber('/collision_avoidance', Bool, collision_avoidance)
-
+    rospy.Subscriber('/lidar_directions_open', Int32MultiArray, lidar_directions_open)
+    rospy.Subscriber('/collision_cmd_vel', Twist, avoid_obstacle)
 
     # Publishers
     gui_current_state_publisher = rospy.Publisher('/gui/current_state', String, queue_size=1)
@@ -145,14 +158,15 @@ if __name__ == "__main__":
     prevState = CurrentState.MANUAL
 
     while not rospy.is_shutdown():
-        if not state.current_state == CurrentState.MANUAL and state.deadman or state.current_state == CurrentState.MANUAL:
-            if state.collision_avoidance and not state.current_state == CurrentState.MANUAL:
-                pose = state.pose
-                pose.linear.x = 0
-                rosaria_cmd_vel_publisher.publish(pose)
+        # If not manual and deadman clicked or manual -> drive 
+        if (not state.current_state == CurrentState.MANUAL and state.deadman) or state.current_state == CurrentState.MANUAL:
+            # if obstacle avoiding and not manual -> drive to avoid obstacle
+            # if state.current_state == CurrentState.OBSTACLE_AVOIDING and not state.current_state == CurrentState.MANUAL:
+            rosaria_cmd_vel_publisher.publish(state.pose)
 
-            else:
-                rosaria_cmd_vel_publisher.publish(state.pose)
+        # else:
+
+        #     rosaria_cmd_vel_publisher.publish(state.pose)
 
         if not prevState == state.current_state:
             rospy.logerr(state.current_state)

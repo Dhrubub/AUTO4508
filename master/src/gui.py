@@ -7,41 +7,144 @@ import matplotlib.pyplot as plt
 import sys
 import rospy
 
-from std_msgs.msg import Int32, String
+from std_msgs.msg import Int32, String, Float32, Bool
 from sensor_msgs.msg import Image as SensorImage
 from sensor_msgs.msg import NavSatFix
 
 import cv2
 from cv_bridge import CvBridge
+from enum import Enum
+import math
+
 
 
 rospy.init_node("gui_node")
 
+# =============================================================================================
+# NW = {"lat": -31.979722, "lon": 115.817004}
+# NE = {"lat": -31.979722, "lon":	115.818504}
+# SE = {"lat": -31.980922, "lon": 115.818504}
+# SW = {"lat": -31.980922, "lon": 115.817004}
+
+NW = {"lat": -31.979922, "lon": 115.817004}
+NE = {"lat": -31.979922, "lon":	115.818204}
+SE = {"lat": -31.980822, "lon": 115.818204}
+SW = {"lat": -31.980822, "lon": 115.817004}
+
+NW = {"lat": -31.980222, "lon": 115.817204}
+NE = {"lat": -31.980222, "lon":	115.818004}
+SE = {"lat": -31.980722, "lon": 115.818004}
+SW = {"lat": -31.980722, "lon": 115.817204}
+
+bbox = {
+    'left' : SW['lon'],
+    'right': NE['lon'],
+    'top': NE['lat'],
+    'bottom': SW['lat'],
+    
+}
+
+bounds_coords = {
+    'NW': (bbox['left'], bbox['top']),
+    'NE': (bbox['right'], bbox['top']),
+    'SE': (bbox['right'], bbox['bottom']),
+    'SW': (bbox['left'], bbox['bottom'])
+}
+
+coords = [
+    {'lat': -31.980622, 'lon': 115.817494},
+    {'lat': -31.980326, 'lon': 115.81747},
+    {'lat': -31.98016, 'lon': 115.817204},
+    {'lat': -31.980058, 'lon': 115.817542}
+]
+
+
+
+class Colour(Enum):
+    EMPTY = [0, 0, 0]
+    PATH = [255, 255, 255]
+    CONE = [255, 127, 0]
+    OBSTACLE = [255, 0, 0]
+    BUCKET = [0, 127, 255]
+
+# =============================================================================================
+
+
+
+
+
+
+
+# =============================================================================================
 # Create the main window
 root = tk.Tk()
 
 class State():
     def __init__(self):
         self.heading = None
-        self.colour_image = np.zeros((200, 200, 3), dtype=np.uint8)
+        self.distance = None
+
+        empty_image = np.zeros((200, 200, 3), dtype=np.uint8)
+        # Assuming your cv2 frame is named 'frame'
+        ros_image = SensorImage()
+        ros_image.header.stamp = rospy.Time.now()
+        ros_image.header.frame_id = 'your_frame_id'
+        ros_image.height = empty_image.shape[0]
+        ros_image.width = empty_image.shape[1]
+        ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+        ros_image.data = empty_image.tobytes()  # Convert the frame to a byte string
+        ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
+    
+        self.colour_image = ros_image
+        self.distance = None
+
+        self.captures = []
+        # for _ in range(10):
+        #     empty_image = np.zeros((100, 100, 3), dtype=np.uint8)
+        #     ros_image = SensorImage()
+        #     ros_image.header.stamp = rospy.Time.now()
+        #     ros_image.header.frame_id = 'your_frame_id'
+        #     ros_image.height = empty_image.shape[0]
+        #     ros_image.width = empty_image.shape[1]
+        #     ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+        #     ros_image.data = empty_image.tobytes()  # Convert the frame to a byte string
+        #     ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
+
+        #     self.captures.append(ros_image)
+
+
+
+
+        
         self.current_state = "MANUAL"
         self.current_gps = None
+        self.grid = np.full((200, 200, 3), Colour.EMPTY.value)
+
+
+
+    def convert_to_cartesian(self, coords, size=200):
+        x_dist = abs(bbox['right'] - bbox['left'])
+        y_dist = abs(bbox['top'] - bbox['bottom'])
+
+        x = int(abs(coords['lon'] - bbox['left']) / x_dist * size)
+        y = int(abs(coords['lat'] - bbox['top']) / y_dist * size)
+
+        return (x, y)
+    
+    def add_point(self, coords, colour):
+        x, y = self.convert_to_cartesian(coords)
+        if np.array_equal(self.grid[y][x], Colour.EMPTY.value):
+            if not np.array_equal(self.grid[y][x], Colour.PATH.value):
+                if y-1 > 0: self.grid[y-1][x] = colour.value
+                if y+1 < 200: self.grid[y+1][x] = colour.value
+                if x-1 > 0: self.grid[y][x-1] = colour.value
+                if x+1 < 200: self.grid[y][x+1] = colour.value
+
+
+            self.grid[y][x] = colour.value
 
 
 state = State()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def on_closing():
     # Perform any cleanup or additional actions before exiting the program
@@ -64,11 +167,11 @@ robot_image_frame.pack(side=tk.LEFT, padx=10)
 
 # Create the first robot image label on the left
 robot_image_label1 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
-robot_image_label1.grid(row=0, column=0, padx=20)
+robot_image_label1.grid(row=0, column=0, padx=45)
 
 # Create the second robot image label on the right
 robot_image_label2 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
-robot_image_label2.grid(row=0, column=1, padx=20)
+robot_image_label2.grid(row=0, column=1, padx=45)
 
 # # Create the second robot image label on the right
 # robot_image_label3 = tk.Label(robot_image_frame, width=200, height=200, bg="black")
@@ -114,11 +217,11 @@ for i in range(len(labels)):
     frame.pack(side=tk.TOP, pady=5)
     label_value_frames.append(frame)
 
-    label = tk.Label(frame, text=labels[i], font=("Arial", 12), width=18, anchor="w")
+    label = tk.Label(frame, text=labels[i], font=("Arial", 7), width=18, anchor="w")
     label.pack(side=tk.LEFT)
     label_labels.append(label)
 
-    value_label = tk.Label(frame, text=values[i], font=("Arial", 12), width=18, anchor="e")
+    value_label = tk.Label(frame, text=values[i], font=("Arial", 7), width=18, anchor="e")
     value_label.pack(side=tk.RIGHT)
     value_labels.append(value_label)
 
@@ -135,15 +238,18 @@ for ax in subplots.flatten():
     ax.axis('off')
 
 plt.tight_layout()
+
+# =============================================================================================
+
 # Function to update the robot state
 def update_state():
     # Update the values of the robot state here
     current_gps = state.current_gps
     heading_angle = state.heading
-    collision_avoidance = True
+    collision_avoidance = ''
     robot_state = state.current_state
-    distance_to_target = 10.5
-    next_target_gps = "37.7749° N, 122.4194° W"
+    distance_to_target = state.distance
+    next_target_gps = ''
 
     # Update the GUI labels with the new values
     value_labels[0].config(text=current_gps)
@@ -168,18 +274,27 @@ def update_state():
     robot_image_label1.config(image=robot_image_tk1)
     robot_image_label1.image = robot_image_tk1
 
-    robot_image2 = Image.fromarray(robot_image_array)
+
+    # # Convert the sensor image to a cv2 frame
+    # cv_image = bridge.imgmsg_to_cv2(state.grid, desired_encoding='bgr8')
+    # resized_image = cv2.resize(cv_image, (200, 200))
+    # # Convert the cv2 frame to PIL Image
+    # robot_image2 = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+
+
+
+    map_grid = state.grid.astype(np.uint8)
+    robot_image2 = Image.fromarray(map_grid)
     robot_image_tk2 = ImageTk.PhotoImage(image=robot_image2)
     robot_image_label2.config(image=robot_image_tk2)
     robot_image_label2.image = robot_image_tk2
 
     # Update the small images with black images
-    small_image_array = np.zeros((100, 100, 3), dtype=np.uint8)
     # Create small image labels
     small_image_labels = []
 
     # Create the labels for small images
-    for i in range(10):
+    for i in range(len(state.captures)):
         label_frame = tk.Frame(bottom_frame, width=100, height=100, bg="white")
         label_frame.grid(row=int(i/5), column=i%5, padx=10, pady=5)
 
@@ -188,9 +303,8 @@ def update_state():
 
         small_image_labels.append(label)
 
-    for label in small_image_labels:
-        image = Image.fromarray(small_image_array)
-        image_tk = ImageTk.PhotoImage(image=image)
+    for i, label in enumerate(small_image_labels):
+        image_tk = ImageTk.PhotoImage(image=state.captures[i])
         label.config(image=image_tk)
         label.image = image_tk
 
@@ -199,14 +313,60 @@ def update_state():
         ax.imshow(np.zeros((100, 100, 3), dtype=np.uint8))
         ax.axis('off')
 
+def update_captures(data):
+    bridge = CvBridge()
+
+    # Convert the sensor image to a cv2 frame
+    cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
+    resized_image = cv2.resize(cv_image, (100, 100))
+    # Convert the cv2 frame to PIL Image
+    robot_image = Image.fromarray(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+
+    state.captures.append(robot_image)
+
+pixel_colour = Colour.PATH
+
+
+def gps_callback(data):
+    global pixel_colour
+    state.current_gps = f"{data.latitude:.6f}, {data.longitude:.6f}"
+    coord = {'lat': data.latitude , 'lon': data.longitude}
+    if not (math.isnan(coord['lat']) or math.isnan(coord['lon'])):
+        state.add_point(coord, pixel_colour)
+        pixel_colour = Colour.PATH
+
+def target_reached(data):
+    global pixel_colour
+    if data.data:
+        pixel_colour = Colour.CONE
+
+
+def current_state(data):
+    global pixel_colour
+    state.current_state = data.data
+    if state.current_state == "OBSTACLE_AVOIDING":
+        pixel_colour = Colour.OBSTACLE
+
+
 
 if __name__ == "__main__":
     rospy.Subscriber('/imu_heading', Int32, lambda data: setattr(state, 'heading', data.data))
     rospy.Subscriber('/gui/colour_image', SensorImage, lambda data: setattr(state, 'colour_image', data))
-    rospy.Subscriber('/fix', NavSatFix, lambda data: setattr(state, 'current_gps', f"{data.latitude}, {data.longitude}"))
-    rospy.Subscriber('/gui/current_state', String, lambda data: setattr(state, 'current_state', data.data))
+    rospy.Subscriber('/fix', NavSatFix, gps_callback)
+    rospy.Subscriber('/gui/current_state', String, current_state)
+    rospy.Subscriber('/gui/capture', SensorImage, update_captures)
+    rospy.Subscriber('/gui/distance', Float32, lambda data: setattr(state, 'distance', data.data))
+    rospy.Subscriber('/target_reached', Bool, target_reached)
+
 
     rate = rospy.Rate(500)
+
+    coords = [
+        {'lat': -31.980622, 'lon': 115.817494},
+        {'lat': -31.980326, 'lon': 115.81747},
+        {'lat': -31.98016, 'lon': 115.817204},
+        {'lat': -31.980058, 'lon': 115.817542}
+    ]
 
     while not rospy.is_shutdown():
         root.update()  # Process any pending events in the GUI
@@ -214,19 +374,6 @@ if __name__ == "__main__":
         # Your GUI-related code here, if needed
         update_state()
 
-        # rate.sleep()  # Sleep according to the desired rate
 
     root.mainloop()  # This line is executed after the while loop exits (ROS shutdown)
 
-#         update_state()
-        # Function to update the robot state and GUI
-        # def update_state_and_gui():
-            # root.after(1000, update_state_and_gui)
-
-        # Schedule the first update
-        # root.after(1000, update_state_and_gui)
-        # rospy.spin()
-# # Schedule the next update after 1 second
-# root.after(1000, update_state)
-
-# Start the GUI main loop

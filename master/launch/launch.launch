@@ -43,4 +43,6 @@
     <!-- Launch drive lidar.py -->
   <node name="drive_lidar" pkg="drive" type="lidar.py" output="screen" />
 
+  <node pkg="drive" type="collision_avoidance.py" name="collision_avoidance_node" output="screen"/>
+
 </launch>

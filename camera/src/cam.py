@@ -23,8 +23,11 @@ camera_publisher = rospy.Publisher('/camera_cmd_vel', Twist, queue_size=1)
 cone_publisher = rospy.Publisher('/cone_detected', Bool, queue_size=1)
 
 gui_colour_image_publisher = rospy.Publisher('/gui/colour_image', Image, queue_size=1)
+gui_capture_publisher = rospy.Publisher('/gui/capture', Image, queue_size=1)
 
 pose = Twist()
+
+lidar_opens = []
 
 def publish_message(x):
     # Create an Int32 message and assign the value to publish
@@ -46,7 +49,7 @@ def locate_cone(input_image):
     ros_image.height = BGR_image.shape[0]
     ros_image.width = BGR_image.shape[1]
     ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
-    ros_image.data = BGR_image.tostring()  # Convert the frame to a byte string
+    ros_image.data = BGR_image.tobytes()  # Convert the frame to a byte string
     ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
     
     gui_colour_image_publisher.publish(ros_image)
@@ -62,10 +65,10 @@ def locate_cone(input_image):
     # lower_threshold_orange2 = np.array([175, 120, 120])
     # upper_threshold_orange2 = np.array([180, 240, 240])
 
-    lower_threshold_orange = np.array([0, 50, 50])
-    upper_threshold_orange = np.array([35, 240, 255])
+    lower_threshold_orange = np.array([0, 20, 20])
+    upper_threshold_orange = np.array([10, 240, 255])
 
-    lower_threshold_orange2 = np.array([175, 50, 50])
+    lower_threshold_orange2 = np.array([175, 20, 20])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
@@ -77,11 +80,11 @@ def locate_cone(input_image):
     
     eroded_then_dilated_orange = cv2.dilate((eroded_orange), cv2.getStructuringElement(1, (11,11)))
     
-    cv2.imshow("Colour", BGR_image)
+    # cv2.imshow("Colour", BGR_image)
     # rospy.logerr(f"height: {len(BGR_image)}")
     # rospy.logerr(f"width: {len(BGR_image[0])}")
-    # cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
     eroded_then_dilated_orange = eroded_then_dilated_orange[125:225, :]
+    cv2.imshow("eroded_then_dilated_orange", eroded_then_dilated_orange)
     totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(eroded_then_dilated_orange, 8, cv2.CV_32S)
     
     labels_of_interest = []
@@ -194,9 +197,21 @@ def find_cone():
                 time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
                 # Print the time string
-                cv2.imshow(time_string, BGR_image)
+                # cv2.imshow(time_string, BGR_image)
+                # Assuming your cv2 frame is named 'frame'
+                ros_image = Image()
+                ros_image.header.stamp = rospy.Time.now()
+                ros_image.header.frame_id = 'your_frame_id'
+                ros_image.height = BGR_image.shape[0]
+                ros_image.width = BGR_image.shape[1]
+                ros_image.encoding = 'bgr8'  # Specify the image encoding (e.g., 'bgr8' for BGR color format)
+                ros_image.data = BGR_image.tobytes()  # Convert the frame to a byte string
+                ros_image.step = len(ros_image.data) // ros_image.height  # Compute the byte step size
 
-            cv2.imshow("output", output)
+                gui_capture_publisher.publish(ros_image)
+
+
+            # cv2.imshow("output", output)
             
             #rospy.logerr(num_orange)
             msg = Bool()

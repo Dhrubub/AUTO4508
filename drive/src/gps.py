@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool, Int32
+from std_msgs.msg import Bool, Int32, Float32
 
 import math
 
@@ -31,9 +31,17 @@ targets = {
     "drain": {'lat': -31.98051, 'lon': 115.81719},
 }
 
+targets = {
+    "one": {'lat': -31.98057, 'lon': 115.81738},
+    "two": {'lat': -31.98041, 'lon': 115.81749,},
+    "three": {'lat': -31.98052, 'lon': 115.81762},
+    "four" : {'lat': -31.98053, 'lon': 115.81775},
+    "five": {'lat': -31.98037, 'lon': 115.81769},
+}
+
 
 # path_names = ["supporter_united", "maybe_a_scoreboard", "drain"]
-path_names = ["one", "two", "three", "four", "drain"]
+path_names = ["three", "five"]
 # pre_compute_headings = []
     
 
@@ -61,6 +69,8 @@ heading_angle = None
 can_cone_follow_publisher = rospy.Publisher("/can_cone_follow", Bool, queue_size=1)
 target_reached_publisher = rospy.Publisher("/target_reached", Bool, queue_size=1)
 all_targets_reached_publisher = rospy.Publisher("/all_targets_reached", Bool, queue_size=1)
+distance_publisher = rospy.Publisher('/gui/distance', Float32, queue_size=1)
+
 
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -87,8 +97,12 @@ def is_distance_below_5m(lat1, lon1, lat2, lon2):
 
 def is_distance_below_2m(lat1, lon1, lat2, lon2):
     distance = calculate_distance(lat1, lon1, lat2, lon2)
-    # rospy.logerr(distance*100000)
-    return distance < 0.000015  # 1 meter is approximately 0.00001 in latitude/longitude units
+    rospy.logerr(distance*100000)
+
+    msg = Float32()
+    msg.data = distance*100000
+    distance_publisher.publish(msg)
+    return distance < 0.00002  # 1 meter is approximately 0.00001 in latitude/longitude units
 
 
 def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
