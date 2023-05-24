@@ -24,6 +24,7 @@ taken_photo = False
 target_reached = False
 
 find_distance = None
+current_target_gps = None
 
 def find_bucket(data):
     global pose
@@ -80,10 +81,13 @@ def heading_callback(data):
             scan_complete_publisher.publish(msg)
 
 
+bucket_pos = None
+
 def gps_callback(data):
     global current_heading
     global find_distance
     global taken_photo
+    global bucket_pos
 
     if taken_photo:
         dist = find_distance / 100000
@@ -95,12 +99,46 @@ def gps_callback(data):
         x2 = cos(phi) * xdist - sin(phi) * ydist + data.longitude
         y2 = sin(phi) * xdist + cos(phi) * ydist + data.latitude
 
-        pos = Float32MultiArray()
-        pos.msg = [y2, x2]
+        msg = Float32MultiArray()
+        msg.data = [y2, x2]
 
-        gui_bucket_publisher.publish(pos)
+        bucket_pos = msg.data
+
+        gui_bucket_publisher.publish(msg)
 
         rospy.logerr(find_distance)
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    # Convert latitude and longitude to radians
+    lat1_rad = lat1
+    lon1_rad = lon1
+    lat2_rad = lat2
+    lon2_rad = lon2
+
+    # Calculate the differences in latitude and longitude
+    delta_lat = lat2_rad - lat1_rad
+    delta_lon = lon2_rad - lon1_rad
+
+    # Calculate the straight-line distance using the Euclidean formula
+    distance = math.sqrt(delta_lat**2 + delta_lon**2)
+
+    return distance
+
+def current_target_gps(data):
+    global current_target_gps
+    global bucket_pos
+
+
+    if not current_target_gps:
+        current_target_gps = data.data
+    
+    elif taken_photo and bucket_pos:
+        dist = calculate_distance(current_target_gps[0], current_target_gps[1], bucket_pos[0], bucket_pos[1])
+        print(dist)
+        # publish distance
+
+        current_target_gps = data.data
+        bucket_pos = None
 
 
 
@@ -110,6 +148,7 @@ if __name__ == '__main__':
     rospy.Subscriber('/lidar_front', Float32MultiArray,  find_bucket)
     rospy.Subscriber('/imu_heading', Int32, heading_callback)
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
+    rospy.Subscriber('/gui/current_target', Float32MultiArray, current_target_gps)
 
 
     while not rospy.is_shutdown():

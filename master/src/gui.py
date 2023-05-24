@@ -135,6 +135,7 @@ class State():
         
         self.current_state = "MANUAL"
         self.current_gps = None
+        self.current_target_gps = None
         self.grid = np.full((200, 200, 3), Colour.EMPTY.value)
 
 
@@ -268,7 +269,7 @@ def update_state():
     collision_avoidance = ''
     robot_state = state.current_state
     distance_to_target = state.distance
-    next_target_gps = ''
+    next_target_gps = current_target_gps
 
     # Update the GUI labels with the new values
     value_labels[0].config(text=current_gps)
@@ -370,9 +371,13 @@ def current_state(data):
 
 
 def bucket_capture(data):
-    coord = {'lat': data[0] , 'lon': data[1]}
+    coord = {'lat': data.data[0] , 'lon': data.data[1]}
     state.add_point(coord, COLOR.BUCKET)
     
+def current_target_gps(data):
+    state.current_target_gps = f"{data[0]:.6f}, {data[1]:.6f}"
+
+
 
 
 if __name__ == "__main__":
@@ -385,6 +390,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/gui/distance', Float32, lambda data: setattr(state, 'distance', data.data))
     rospy.Subscriber('/target_reached', Bool, target_reached)
     rospy.Subscriber('/gui/bucket', Float32MultiArray, bucket_capture)
+    rospy.Subscriber('/gui/current_target', Float32MultiArray, current_target_gps)
 
 
     rate = rospy.Rate(500)

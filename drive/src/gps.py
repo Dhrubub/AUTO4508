@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool, Int32, Float32, Int32MultiArray
+from std_msgs.msg import Bool, Int32, Float32, Int32MultiArray, Float32MultiArray
 
 import math
 import pandas as pd
@@ -97,6 +97,7 @@ can_cone_follow_publisher = rospy.Publisher("/can_cone_follow", Bool, queue_size
 target_reached_publisher = rospy.Publisher("/target_reached", Bool, queue_size=1)
 all_targets_reached_publisher = rospy.Publisher("/all_targets_reached", Bool, queue_size=1)
 distance_publisher = rospy.Publisher('/gui/distance', Float32, queue_size=1)
+current_target_gps_publisher = rospy.Publisher('/gui/current_target', Float32MultiArray, queue_size=1)
 
 
 
@@ -186,6 +187,9 @@ def gps_callback(data):
 
     # if current_target >= len(path):
     current_target %= len(path)
+    msg = Float32MultiArray()
+    msg.data = [current_target['lat'], current_target['lon']]
+    current_target_gps_publisher.publish(msg)
     # rospy.logerr(dir(data))
     target_lat = path[current_target]['lat']
     target_long = path[current_target]['lon']

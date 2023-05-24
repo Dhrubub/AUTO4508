@@ -201,7 +201,10 @@ def find_cone():
                 current_time = datetime.now()
 
                 # Format the current time as a string
+                folder = "/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/images"
                 time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+                cv2.imwrite(f"{folder}/{time_string}.jpg", BGR_image)
 
                 # Print the time string
                 # cv2.imshow(time_string, BGR_image)
