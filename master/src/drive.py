@@ -15,6 +15,9 @@ class CurrentState(Enum):
     CONE_FOLLOW = "CONE_FOLLOW"
     SCAN = "SCAN"
     OBSTACLE_AVOIDING = "OBSTACLE_AVOIDING"
+    COMPLETED = "COMPLETED"
+
+completed = False
 
 class State:
     def __init__(self):
@@ -24,14 +27,10 @@ class State:
         self.can_cone_follow = False
         self.current_state = CurrentState.MANUAL
 
-    def set_manual(self, data):
-        if data:
-            self.current_state = CurrentState.MANUAL
-        else:
-            self.current_state = CurrentState.AUTO
-
     def set_state(self, data):
-        self.current_state = data
+        global completed
+        if not completed:
+            self.current_state = data
 
     def set_scan(self):
         self.pose = Twist()
@@ -58,7 +57,10 @@ def auto_cmd_vel(data):
 
 def manual_toggle(data):
     # Set to manual if not manual
+    global completed
     if data.data and not state.current_state == CurrentState.MANUAL:
+        if state.current_state == CurrentState.COMPLETED:
+            completed = False
         state.set_pose(Twist())
         state.set_state(CurrentState.MANUAL)
 
@@ -125,7 +127,11 @@ def scan_cmd_vel(data):
 
 
 def all_targets_reached(data):
+    global completed
     if data.data:
+        state.set_state(CurrentState.COMPLETED)
+        completed = True
+
         rospy.logerr("Completed all targets!")
 
 def lidar_directions_open(data):
@@ -134,7 +140,8 @@ def lidar_directions_open(data):
     right = data.data[1]
 
 
-    if not (front or state.current_state == CurrentState.MANUAL or state.current_state == CurrentState.SCAN):
+    if not (front or state.current_state == CurrentState.MANUAL or \
+            state.current_state == CurrentState.SCAN or state.current_state == CurrentState.CONE_FOLLOW):
         state.set_state(CurrentState.OBSTACLE_AVOIDING)
     
     elif right and state.current_state == CurrentState.OBSTACLE_AVOIDING:
@@ -179,7 +186,8 @@ if __name__ == "__main__":
         if (not state.current_state == CurrentState.MANUAL and state.deadman) or state.current_state == CurrentState.MANUAL:
             # if obstacle avoiding and not manual -> drive to avoid obstacle
             # if state.current_state == CurrentState.OBSTACLE_AVOIDING and not state.current_state == CurrentState.MANUAL:
-            rosaria_cmd_vel_publisher.publish(state.pose)
+            if not completed:
+                rosaria_cmd_vel_publisher.publish(state.pose)
 
         # else:
 

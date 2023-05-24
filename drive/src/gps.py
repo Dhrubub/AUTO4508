@@ -56,20 +56,25 @@ path = []
 df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
 
 for index, row in df.iterrows():
-    print(row)
+    # print(row)
     lat = float(row[0])
     lon = float(row[1])
     coordinates = {'lat': lat, 'lon': lon}
     path.append(coordinates)
 
 
-print(path)
 
+path.append(path[0])
+path = path[1:]
+
+print(path)
 
 
 current_target = 0
 
-init_pos = False
+# init_pos = row[0]
+
+# path.append(init_pos)
 
 init_lat = None
 init_long = None
@@ -166,21 +171,21 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
 
 
 def gps_callback(data):
-    global init_pos
+    # global init_pos
     global path
     global heading_angle
     global current_target
     # rospy.logerr(f"lat: {data.latitude} long: {data.longitude}")
     # rospy.logerr(current_target)
-    if not init_pos:
-        if (data.latitude and data.longitude):
-            pos = {"lon": data.longitude, "lat": data.latitude}
-            path.append(pos)
-            init_pos = True
+    # if not init_pos:
+    #     if (data.latitude and data.longitude):
+    #         pos = {"lon": data.longitude, "lat": data.latitude}
+    #         path.append(pos)
+    #         init_pos = True
             # rospy.logerr(len(path))
 
-    if current_target >= len(path):
-        return
+    # if current_target >= len(path):
+    current_target %= len(path)
     # rospy.logerr(dir(data))
     target_lat = path[current_target]['lat']
     target_long = path[current_target]['lon']

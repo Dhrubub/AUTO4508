@@ -256,6 +256,7 @@ def find_cone():
 def take_photo_callback(data):
     global take_photo
     if data.data:
+        print("Taking photo")
         take_photo = True
 
 if __name__ == "__main__":

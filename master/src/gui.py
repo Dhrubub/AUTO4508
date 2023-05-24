@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import sys
 import rospy
 
-from std_msgs.msg import Int32, String, Float32, Bool
+from std_msgs.msg import Int32, String, Float32, Bool, Float32MultiArray
 from sensor_msgs.msg import Image as SensorImage
 from sensor_msgs.msg import NavSatFix
 
@@ -64,7 +64,7 @@ class Colour(Enum):
     EMPTY = [0, 0, 0]
     PATH = [255, 255, 255]
     CONE = [255, 127, 0]
-    OBSTACLE = [255, 0, 0]
+    OBSTACLE = [0, 255, 0]
     BUCKET = [0, 127, 255]
 
 # =============================================================================================
@@ -151,7 +151,7 @@ class State():
     def add_point(self, coords, colour):
         x, y = self.convert_to_cartesian(coords)
         if np.array_equal(self.grid[y][x], Colour.EMPTY.value):
-            if not np.array_equal(self.grid[y][x], Colour.PATH.value):
+            if not np.array_equal(colour.value, Colour.PATH.value):
                 if y-1 > 0: self.grid[y-1][x] = colour.value
                 if y+1 < 200: self.grid[y+1][x] = colour.value
                 if x-1 > 0: self.grid[y][x-1] = colour.value
@@ -369,6 +369,11 @@ def current_state(data):
         pixel_colour = Colour.OBSTACLE
 
 
+def bucket_capture(data):
+    coord = {'lat': data[0] , 'lon': data[1]}
+    state.add_point(coord, COLOR.BUCKET)
+    
+
 
 if __name__ == "__main__":
     rospy.Subscriber('/imu_heading', Int32, lambda data: setattr(state, 'heading', data.data))
@@ -379,6 +384,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/gui/capture', SensorImage, update_captures)
     rospy.Subscriber('/gui/distance', Float32, lambda data: setattr(state, 'distance', data.data))
     rospy.Subscriber('/target_reached', Bool, target_reached)
+    rospy.Subscriber('/gui/bucket', Float32MultiArray, bucket_capture)
 
 
     rate = rospy.Rate(500)
