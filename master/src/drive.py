@@ -195,9 +195,10 @@ if __name__ == "__main__":
 
         if not prevState == state.current_state:
             rospy.logerr(state.current_state)
-            msg = String()
-            msg.data = state.current_state.name
-            gui_current_state_publisher.publish(msg)
             prevState = state.current_state
+
+        msg = String()
+        msg.data = state.current_state.name
+        gui_current_state_publisher.publish(msg)
 
         rate.sleep()

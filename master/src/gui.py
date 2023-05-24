@@ -10,6 +10,8 @@ import rospy
 from std_msgs.msg import Int32, String, Float32, Bool, Float32MultiArray
 from sensor_msgs.msg import Image as SensorImage
 from sensor_msgs.msg import NavSatFix
+from geometry_msgs.msg import Twist
+
 
 import cv2
 from cv_bridge import CvBridge
@@ -114,6 +116,7 @@ class State():
 
         self.output_image = ros_image
         self.distance = None
+        self.pose = None
 
         self.captures = []
         # for _ in range(10):
@@ -224,7 +227,7 @@ bottom_frame = tk.Frame(root, width=600, height=300)
 bottom_frame.pack(fill=tk.X)
 
 # Labels and Values
-labels = ["GPS", "Heading", "Collision Avoidance", "State", "Distance to Target", "Next Target GPS"]
+labels = ["GPS", "Heading", "Speed", "State", "Distance to Target", "Next Target GPS"]
 values = ["", "", "", "", "", ""]
 
 label_value_frames = []
@@ -266,15 +269,15 @@ def update_state():
     # Update the values of the robot state here
     current_gps = state.current_gps
     heading_angle = state.heading
-    collision_avoidance = ''
+    pose = f"x: {state.pose.linear.x}, z: {state.pose.angular.z}"
     robot_state = state.current_state
     distance_to_target = state.distance
-    next_target_gps = current_target_gps
+    next_target_gps = state.current_target_gps
 
     # Update the GUI labels with the new values
     value_labels[0].config(text=current_gps)
     value_labels[1].config(text=str(heading_angle))
-    value_labels[2].config(text=str(collision_avoidance))
+    value_labels[2].config(text=str(pose))
     value_labels[3].config(text=robot_state)
     value_labels[4].config(text=str(distance_to_target))
     value_labels[5].config(text=next_target_gps)
@@ -375,7 +378,8 @@ def bucket_capture(data):
     state.add_point(coord, COLOR.BUCKET)
     
 def current_target_gps(data):
-    state.current_target_gps = f"{data[0]:.6f}, {data[1]:.6f}"
+    print(data)
+    state.current_target_gps = f"{data.data[0]:.6f}, {data.data[1]:.6f}"
 
 
 
@@ -391,6 +395,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/target_reached', Bool, target_reached)
     rospy.Subscriber('/gui/bucket', Float32MultiArray, bucket_capture)
     rospy.Subscriber('/gui/current_target', Float32MultiArray, current_target_gps)
+    rospy.Subscriber('/RosAria/cmd_vel', Twist, lambda data: setattr(state, 'pose', data))
 
 
     rate = rospy.Rate(500)

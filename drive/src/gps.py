@@ -188,7 +188,8 @@ def gps_callback(data):
     # if current_target >= len(path):
     current_target %= len(path)
     msg = Float32MultiArray()
-    msg.data = [current_target['lat'], current_target['lon']]
+    current_target_gps = path[current_target]
+    msg.data = [current_target_gps['lat'], current_target_gps['lon']]
     current_target_gps_publisher.publish(msg)
     # rospy.logerr(dir(data))
     target_lat = path[current_target]['lat']

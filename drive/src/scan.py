@@ -46,7 +46,7 @@ def find_bucket(data):
                 print("take photo while scanning")
                 break
 
-def target_reached(data):
+def target_reached_cb(data):
     global target_reached
     if data.data:
         target_reached = data.data
@@ -128,7 +128,6 @@ def current_target_gps(data):
     global current_target_gps
     global bucket_pos
 
-
     if not current_target_gps:
         current_target_gps = data.data
     
@@ -144,7 +143,7 @@ def current_target_gps(data):
 
 if __name__ == '__main__':
     rate = rospy.Rate(500)
-    rospy.Subscriber('/target_reached', Bool, target_reached)
+    rospy.Subscriber('/target_reached', Bool, target_reached_cb)
     rospy.Subscriber('/lidar_front', Float32MultiArray,  find_bucket)
     rospy.Subscriber('/imu_heading', Int32, heading_callback)
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
