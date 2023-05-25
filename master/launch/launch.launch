@@ -49,6 +49,6 @@
   <!-- <node name="camera_node" pkg="camera" type="cam.py" output="screen"/> -->
   
   <!-- Run gui.py -->
-  <node name="gui_node" pkg="master" type="gui.py" output="screen"/>
+  <!-- <node name="gui_node" pkg="master" type="gui.py" output="screen"/> -->
 
 </launch>
