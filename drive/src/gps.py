@@ -44,15 +44,16 @@ targets = {
 # path_names = ["supporter_united", "maybe_a_scoreboard", "drain"]
 path_names = ["three", "five"]
 # pre_compute_headings = []
-    
+
+is_cone_detected = False 
 
 
 # path = [targets[p] for p in path_names]
 
 path = []
-df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
+# df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
 
-# df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/ProjectCoordinates.csv', header=None)
+df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/ProjectCoordinates.csv', header=None)
 
 for index, row in df.iterrows():
     # print(row)
@@ -98,7 +99,7 @@ target_reached_publisher = rospy.Publisher("/target_reached", Bool, queue_size=1
 all_targets_reached_publisher = rospy.Publisher("/all_targets_reached", Bool, queue_size=1)
 distance_publisher = rospy.Publisher('/gui/distance', Float32, queue_size=1)
 current_target_gps_publisher = rospy.Publisher('/gui/current_target', Float32MultiArray, queue_size=1)
-
+scanning_cone_publisher = rospy.Publisher('/scanning_cone', Bool, queue_size=1)
 
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -139,6 +140,7 @@ def is_distance_below_2m(lat1, lon1, lat2, lon2):
 def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     # Calculate the differences in latitude and longitude
     global current_target
+    global is_cone_detected
 
     delta_lat = target_lat - current_lat
     delta_lon = target_lon - current_lon
@@ -153,7 +155,9 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     msg = Bool()
     msg.data = False
 
-    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)):
+    is_in_range = is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)
+
+    if is_in_range and is_cone_detected:
         msg.data = True
         current_target += 1
         if current_target >= len(path):
@@ -168,7 +172,7 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     angle_rad = math.atan2(delta_lat, delta_lon)
     angle_deg = math.degrees(angle_rad)
 
-    return angle_deg
+    return angle_deg, is_in_range
 
 
 def gps_callback(data):
@@ -198,7 +202,17 @@ def gps_callback(data):
     # target_lat = -31.9804611
     # target_long = 115.8172018
 
-    bearing = get_angle_to_target(data.latitude, data.longitude, target_lat, target_long)
+    bearing, is_in_range = get_angle_to_target(data.latitude, data.longitude, target_lat, target_long)
+
+    if is_in_range:
+        pose = Twist()
+        msg = Bool()
+        pose.angular.z = 0.5
+        msg.data = True
+        scanning_cone_publisher.publish(msg)
+        cmd_publisher.publish(pose)
+        return
+
     
 
     if heading_angle == None:
@@ -248,11 +262,14 @@ def open_cb(data):
     global lidar_open
     lidar_open = data.data
 
-    
+def cone_detected(data):
+    global is_cone_detected
+    is_cone_detected = data.data
 
 if __name__ == '__main__':
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
     rospy.Subscriber('/imu_heading', Int32, heading_callback)
     rospy.Subscriber('/lidar_directions_open', Int32MultiArray, open_cb)
+    rospy.Subscriber('/cone_detected', Bool, cone_detected)
 
     rospy.spin()    

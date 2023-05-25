@@ -9,6 +9,8 @@ import math
 
 rospy.init_node("scan_node")
 
+open("/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/distances.txt", 'w').close()
+
 cmd_publisher = rospy.Publisher('/scan_cmd_vel', Twist, queue_size=1)
 photo_publisher = rospy.Publisher('/take_bucket_photo', Bool, queue_size=1)
 scan_complete_publisher = rospy.Publisher('/scan_complete', Bool, queue_size=1)
@@ -19,7 +21,7 @@ pose = Twist()
 
 initial_heading = None
 
-pose.angular.z = 0.2
+pose.angular.z = 0.5
 
 taken_photo = False
 target_reached = False
@@ -27,17 +29,21 @@ target_reached = False
 find_distance = None
 current_target_gps = None
 
+is_cone_detected = False
+
 def find_bucket(data):
     global pose
     global taken_photo
     global target_reached
     global find_distance
+    global is_cone_detected
 
     dists = data.data
     # print(dists[len(dists)//2-2:len(dists)//2+2])
     if not taken_photo and target_reached:
         for d in dists[len(dists)//2-2:len(dists)//2+2]:
-            if 2 < d < 10:
+            # if 2 < d < 10 or d > 1 and not is_cone_detected:
+            if 8 > d > 1 and not is_cone_detected:
                 print(d)
                 find_distance = d
                 msg = Bool()
@@ -56,6 +62,8 @@ current_heading = None
 
 bucket_pos = None
 
+self_oriented = False
+
 def heading_callback(data):
     global pose
     global taken_photo
@@ -63,6 +71,7 @@ def heading_callback(data):
     global target_reached
     global current_heading
     global bucket_pos
+    global self_oriented
 
     current_heading = data.data
 
@@ -74,10 +83,11 @@ def heading_callback(data):
 
     if taken_photo and bucket_pos:
         # print(initial_heading)
-        # if not (initial_heading - 10 < data.data < initial_heading + 10):
-        #     pose.angular.z = 0.5
-        # else:
-        pose = Twist()
+        if not (initial_heading - 10 < data.data < initial_heading + 10):
+            pose.angular.z = 0.5
+        else:
+            pose = Twist()
+            self_oriented = True
 
 
 
@@ -89,7 +99,6 @@ def gps_callback(data):
     global bucket_pos
 
     if taken_photo and find_distance:
-        print("hellooooooooooo")
         print(find_distance)
         dist = find_distance / 100000
         phi = current_heading / 180 * math.pi
@@ -102,7 +111,6 @@ def gps_callback(data):
 
         msg = Float32MultiArray()
 
-        
         msg.data = [y2, x2]
 
         bucket_pos = msg.data
@@ -135,14 +143,19 @@ def current_target_gps_cb(data):
     global initial_heading
     global target_reached
     global current_heading
+    global self_oriented
+
 
     if not current_target_gps:
         current_target_gps = data.data
     
-    elif taken_photo and bucket_pos:
-        dist = calculate_distance(current_target_gps[0], current_target_gps[1], bucket_pos[0], bucket_pos[1])
+    elif taken_photo and bucket_pos and self_oriented:
+        dist = calculate_distance(current_target_gps[0], current_target_gps[1], bucket_pos[0], bucket_pos[1]) * 100000
         msg = Float32()
         msg.data = dist
+        # rospy.logerr(f"distttttt: {dist}")
+        with open("/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/distances.txt", 'a') as f:
+            f.write(f"{dist}\n")
         gui_bucket_cone_distance.publish(dist)
 
         initial_heading = None
@@ -151,13 +164,16 @@ def current_target_gps_cb(data):
         msg = Bool()
         msg.data = True
         bucket_pos = None
+        self_oriented = False
         scan_complete_publisher.publish(msg)
 
         # publish distance
 
         current_target_gps = data.data
 
-
+def cone_detected(data):
+    global is_cone_detected
+    is_cone_detected = data.data
 
 if __name__ == '__main__':
     rate = rospy.Rate(500)
@@ -166,6 +182,7 @@ if __name__ == '__main__':
     rospy.Subscriber('/imu_heading', Int32, heading_callback)
     rospy.Subscriber('/fix', NavSatFix, gps_callback)
     rospy.Subscriber('/gui/current_target', Float32MultiArray, current_target_gps_cb)
+    rospy.Subscriber('/cone_detected', Bool, cone_detected)
 
 
     while not rospy.is_shutdown():

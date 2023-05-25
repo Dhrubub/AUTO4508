@@ -169,10 +169,10 @@ class State():
             return
         if np.array_equal(self.grid[y][x], Colour.EMPTY.value):
             if not np.array_equal(colour.value, Colour.PATH.value):
-                if y-1 > 0: self.grid[y-1][x] = colour.value
-                if y+1 < 200: self.grid[y+1][x] = colour.value
-                if x-1 > 0: self.grid[y][x-1] = colour.value
-                if x+1 < 200: self.grid[y][x+1] = colour.value
+                if y-1 > 0 and np.array_equal(self.grid[y-1][x], Colour.EMPTY.value): self.grid[y-1][x] = colour.value
+                if y+1 < 200 and np.array_equal(self.grid[y+1][x], Colour.EMPTY.value): self.grid[y+1][x] = colour.value
+                if x-1 > 0 and np.array_equal(self.grid[y][x-1], Colour.EMPTY.value): self.grid[y][x-1] = colour.value
+                if x+1 < 200 and np.array_equal(self.grid[y][x+1], Colour.EMPTY.value): self.grid[y][x+1] = colour.value
 
             if 0 <= y < 200 and 0 <= x < 200:
                 self.grid[y][x] = colour.value
@@ -386,6 +386,8 @@ def current_state(data):
     state.current_state = data.data
     if state.current_state == "OBSTACLE_AVOIDING":
         pixel_colour = Colour.OBSTACLE
+    if state.current_state == "SCANNING_CONE":
+        pixel_colour = Colour.CONE
 
 
 def bucket_capture(data):
@@ -398,7 +400,7 @@ def current_target_gps(data):
 
 
 def bucket_cone_distance(data):
-    print(f"Bucket to cone distance: {data.data}")
+    rospy.logerr(f"Bucket to cone distance: {data.data}")
 
 
 if __name__ == "__main__":

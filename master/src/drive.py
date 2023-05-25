@@ -16,6 +16,7 @@ class CurrentState(Enum):
     SCAN = "SCAN"
     OBSTACLE_AVOIDING = "OBSTACLE_AVOIDING"
     COMPLETED = "COMPLETED"
+    SCANNING_CONE = "SCANNING_CONE"
 
 completed = False
 
@@ -49,7 +50,7 @@ def man_cmd_vel(data):
         state.set_pose(data)
 
 def auto_cmd_vel(data):
-    if state.current_state == CurrentState.AUTO:
+    if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.SCANNING_CONE :
         if state.deadman:
             state.set_pose(data)
         else:
@@ -111,7 +112,7 @@ def can_cone_follow(data):
 
 def target_reached(data):
     if data.data:
-        if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.CONE_FOLLOW:
+        if state.current_state == CurrentState.AUTO or state.current_state == CurrentState.CONE_FOLLOW or CurrentState.SCANNING_CONE:
             state.set_state(CurrentState.SCAN)
             rospy.logerr("SCANNING")
             state.set_pose(Twist())
@@ -141,6 +142,7 @@ def lidar_directions_open(data):
 
 
     if not (front or state.current_state == CurrentState.MANUAL or \
+            state.current_state == CurrentState.SCANNING_CONE or \
             state.current_state == CurrentState.SCAN):
         state.set_state(CurrentState.OBSTACLE_AVOIDING)
     
@@ -156,6 +158,9 @@ def scan_complete(data):
     if data.data and state.current_state == CurrentState.SCAN:
         state.set_state(CurrentState.AUTO)
 
+def scanning_cone(data):
+    if (data.data) and state.current_state == CurrentState.AUTO:
+        state.set_state(CurrentState.SCANNING_CONE)
 
 if __name__ == "__main__":
     rate = rospy.Rate(50)
@@ -174,6 +179,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/collision_cmd_vel', Twist, avoid_obstacle)
     rospy.Subscriber('/scan_cmd_vel', Twist, scan_cmd_vel)
     rospy.Subscriber('/scan_complete', Bool, scan_complete)
+    rospy.Subscriber('/scanning_cone', Bool, scanning_cone)
 
     # Publishers
     gui_current_state_publisher = rospy.Publisher('/gui/current_state', String, queue_size=1)

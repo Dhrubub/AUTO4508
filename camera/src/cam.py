@@ -6,7 +6,6 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Int32
 from sensor_msgs.msg import Image
 
-
 from depthai_sdk import OakCamera
 
 from datetime import datetime
@@ -18,6 +17,19 @@ prevCount = 0
 take_photo = False
 
 rospy.init_node('camera_steer')
+
+import os
+
+def delete_empty_files(directory):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if os.path.isfile(file_path) and os.path.getsize(file_path) > 0:
+            os.remove(file_path)
+
+# Example usage
+directory_path = "/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/images"
+delete_empty_files(directory_path)
+
 
 camera_publisher = rospy.Publisher('/camera_cmd_vel', Twist, queue_size=1)
 cone_publisher = rospy.Publisher('/cone_detected', Bool, queue_size=1)
@@ -69,10 +81,10 @@ def locate_cone(input_image):
     # lower_threshold_orange2 = np.array([175, 120, 120])
     # upper_threshold_orange2 = np.array([180, 240, 240])
 
-    lower_threshold_orange = np.array([0, 200, 200])
+    lower_threshold_orange = np.array([0, 180, 180])
     upper_threshold_orange = np.array([10, 240, 255])
 
-    lower_threshold_orange2 = np.array([170, 200, 200])
+    lower_threshold_orange2 = np.array([170, 180, 180])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)
