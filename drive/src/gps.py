@@ -53,7 +53,7 @@ path = []
 # df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/coordinate.csv', header=None)
 
 # Teest
-df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
+df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/ProjectCoordinates.csv', header=None)
 
 for index, row in df.iterrows():
     # print(row)
@@ -63,6 +63,7 @@ for index, row in df.iterrows():
     path.append(coordinates)
 
 
+# path = path[:-1] -> remove the last coordinate which is off the oval
 
 path.append(path[0])
 path = path[1:]
