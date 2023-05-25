@@ -50,10 +50,9 @@ path_names = ["three", "five"]
 # path = [targets[p] for p in path_names]
 
 path = []
-# df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/coordinate.csv', header=None)
+df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/test.csv', header=None)
 
-# Teest
-df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/ProjectCoordinates.csv', header=None)
+# df = pd.read_csv('/home/group1/Desktop/project/AUTO4508/catkin_ws/src/master/src/ProjectCoordinates.csv', header=None)
 
 for index, row in df.iterrows():
     # print(row)
@@ -154,7 +153,7 @@ def get_angle_to_target(current_lat, current_lon, target_lat, target_lon):
     msg = Bool()
     msg.data = False
 
-    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)) or reachable_threshold and not lidar_open[0]:
+    if (is_distance_below_2m(current_lat, current_lon, target_lat, target_lon)):
         msg.data = True
         current_target += 1
         if current_target >= len(path):

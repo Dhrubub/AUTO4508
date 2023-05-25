@@ -69,10 +69,10 @@ def locate_cone(input_image):
     # lower_threshold_orange2 = np.array([175, 120, 120])
     # upper_threshold_orange2 = np.array([180, 240, 240])
 
-    lower_threshold_orange = np.array([0, 50, 50])
+    lower_threshold_orange = np.array([0, 200, 200])
     upper_threshold_orange = np.array([10, 240, 255])
 
-    lower_threshold_orange2 = np.array([170, 50, 50])
+    lower_threshold_orange2 = np.array([170, 200, 200])
     upper_threshold_orange2 = np.array([180, 240, 255])
     
     orange_only = cv2.inRange(HSV_image, lower_threshold_orange, upper_threshold_orange)

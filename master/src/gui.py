@@ -38,10 +38,16 @@ rospy.init_node("gui_node")
 # SE = {"lat": -31.980722, "lon": 115.818004}
 # SW = {"lat": -31.980722, "lon": 115.817204}
 
+# REAL
 NW = {"lat": -31.9797741, "lon": 115.8170298}
 NE = {"lat": -31.9797741, "lon": 115.8180379}
 SE = {"lat": -31.980707, "lon": 115.8180379}
 SW = {"lat": -31.980707, "lon": 115.8170298}
+
+NW = {"lat": -31.9797741, "lon": 115.8170898}
+NE = {"lat": -31.9797741, "lon": 115.81812}
+SE = {"lat": -31.980707, "lon": 115.81812}
+SW = {"lat": -31.980707, "lon": 115.8170898}
 
 bbox = {
     'left' : SW['lon'],
@@ -157,8 +163,10 @@ class State():
 
         return (x, y)
     
-    def add_point(self, coords, colour):
+    def add_point(self, coords, colour):  
         x, y = self.convert_to_cartesian(coords)
+        if not (0 <= y < 200 and 0 <= x < 200):
+            return
         if np.array_equal(self.grid[y][x], Colour.EMPTY.value):
             if not np.array_equal(colour.value, Colour.PATH.value):
                 if y-1 > 0: self.grid[y-1][x] = colour.value
@@ -274,7 +282,9 @@ def update_state():
     # Update the values of the robot state here
     current_gps = state.current_gps
     heading_angle = state.heading
-    pose = f"x: {state.pose.linear.x}, z: {state.pose.angular.z}"
+    pose = None
+    if not state.pose is None:
+        pose = f"x: {state.pose.linear.x}, z: {state.pose.angular.z}"
     robot_state = state.current_state
     distance_to_target = state.distance
     next_target_gps = state.current_target_gps
@@ -380,13 +390,15 @@ def current_state(data):
 
 def bucket_capture(data):
     coord = {'lat': data.data[0] , 'lon': data.data[1]}
-    state.add_point(coord, COLOR.BUCKET)
+    state.add_point(coord, Colour.BUCKET)
     
 def current_target_gps(data):
-    print(data)
+    # print(data)
     state.current_target_gps = f"{data.data[0]:.6f}, {data.data[1]:.6f}"
 
 
+def bucket_cone_distance(data):
+    print(f"Bucket to cone distance: {data.data}")
 
 
 if __name__ == "__main__":
@@ -401,6 +413,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/gui/bucket', Float32MultiArray, bucket_capture)
     rospy.Subscriber('/gui/current_target', Float32MultiArray, current_target_gps)
     rospy.Subscriber('/RosAria/cmd_vel', Twist, lambda data: setattr(state, 'pose', data))
+    rospy.Subscriber('/gps/bucket_cone_distance', Float32, bucket_cone_distance)
 
 
     rate = rospy.Rate(500)

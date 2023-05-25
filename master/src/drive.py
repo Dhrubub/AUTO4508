@@ -141,7 +141,7 @@ def lidar_directions_open(data):
 
 
     if not (front or state.current_state == CurrentState.MANUAL or \
-            state.current_state == CurrentState.SCAN or state.current_state == CurrentState.CONE_FOLLOW):
+            state.current_state == CurrentState.SCAN):
         state.set_state(CurrentState.OBSTACLE_AVOIDING)
     
     elif right and state.current_state == CurrentState.OBSTACLE_AVOIDING:
